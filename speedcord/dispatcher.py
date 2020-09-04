@@ -3,7 +3,6 @@ Created by Epic at 9/1/20
 """
 
 from asyncio import AbstractEventLoop
-from inspect import iscoroutine
 import logging
 
 
@@ -21,8 +20,6 @@ class DefaultDispatcher:
             self.loop.create_task(event(*args, **kwargs))
 
     def register(self, opcode, func):
-        if not iscoroutine(func):
-            raise TypeError("func has to be a coroutine!")
         event_handlers = self.event_handlers.get(opcode, [])
         event_handlers.append(func)
         self.event_handlers[opcode] = event_handlers

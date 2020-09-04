@@ -25,8 +25,13 @@ class Client:
         self.dispatcher = DefaultDispatcher(self.loop)
         self.gateway_handler = DefaultGatewayHandler(self)
         self.connected = asyncio.Event()
-
+        self.heartbeat_interval = None
+        self.heartbeat_count = None
+        self.received_heartbeat_ack = True
         self.error_exit_event = asyncio.Event(loop=self.loop)
+
+        # Default handlers
+        self.dispatcher.register(10, self.handle_hello)
 
     def run(self):
         try:
@@ -59,12 +64,18 @@ class Client:
     async def connect(self):
         if self.token is None:
             raise exceptions.InvalidToken
+        if self.ws is not None:
+            if not self.ws.closed:
+                await self.ws.close()
+            self.ws = None
 
         gateway_url = await self.get_gateway_url()
 
         self.ws = await self.http.create_ws(gateway_url, compression=0)
         self.connected.set()
 
+        # Start receiving events
+        self.loop.create_task(self.read_loop())
         # Connect to the WS
         await self.send(packets.identify(self.token, intents=self.intents, mobile_status=True))
 
@@ -74,8 +85,6 @@ class Client:
         self.http = HttpClient(self.token, loop=self.loop)
 
         await self.connect()
-
-        self.loop.create_task(self.read_loop())
 
         await self.error_exit_event.wait()
         await self.close()
@@ -90,6 +99,23 @@ class Client:
             elif message.type == WSMsgType.TEXT:
                 await self.gateway_handler.on_receive(message.json())
 
+    async def heartbeat_loop(self):
+        while True:
+            if self.ws is None or self.ws.closed:
+                return
+            if not self.received_heartbeat_ack:
+                self.logger.error("Gateway stopped responding to heartbeats, reconnecting!")
+            self.received_heartbeat_ack = False
+            await self.send({
+                "op": 1,
+                "d": self.heartbeat_count
+            })
+            if self.heartbeat_count is None:
+                self.heartbeat_count = 1
+            else:
+                self.heartbeat_count += 1
+            await asyncio.sleep(self.heartbeat_interval)
+
     async def send(self, data: dict):
         if self.ws.closed:
             raise exceptions.GatewayClosed
@@ -99,3 +125,14 @@ class Client:
         await self.http.close()
         if self.ws is not None and not self.ws.closed:
             await self.ws.close()
+
+    # Handle events
+    async def handle_hello(self, data):
+        self.logger.debug(data)
+        self.heartbeat_interval = data["heartbeat_interval"]/1000
+        self.loop.create_task(self.heartbeat_loop())
+        self.logger.debug("Started heartbeat loop")
+
+    async def handle_heartbeat_ack(self, data):
+        self.received_heartbeat_ack = True
+        self.logger.debug("Received heartbeat ack!")
