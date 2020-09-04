@@ -1,0 +1,31 @@
+name: Upload to PYPI
+on:
+  - push
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install dependencies
+        run: |
+          pip install setuptools wheel twine
+          pip install -r requirements.txt
+      - name: Update version
+        run: |
+          cd .github/buildtools
+          mv update_version.py ../../
+          cd ../../
+          python update_version.py
+          git add .
+          git commit -m "Bump version"
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python setup.py sdist bdist
