@@ -14,7 +14,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install setuptools wheel twine
-          pip install -r requirements.txt
       - name: Update version
         run: |
           cd .github/buildtools
