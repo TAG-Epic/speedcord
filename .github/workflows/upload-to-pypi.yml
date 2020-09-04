@@ -30,7 +30,6 @@ jobs:
           TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
         run: |
-          rm -rf dist build
           python setup.py sdist
           twine upload dist/*
           git push
