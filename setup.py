@@ -2,10 +2,11 @@
 Created by Epic at 9/4/20
 """
 from setuptools import setup
+from speedcord.values import version
 
 setup(
     name='speedcord',
-    version='0.0.1',
+    version=version,
     packages=["speedcord"],
     url='https://github.com/tag-epic/speedcord',
     license='MIT',
