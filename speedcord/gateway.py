@@ -11,4 +11,4 @@ class DefaultGatewayHandler:
 
     async def on_receive(self, data: dict):
         self.logger.debug("Data received: " + str(data))
-        self.client.dispatcher.dispatch(data["op"], data.get("d", None))
+        self.client.opcode_dispatcher.dispatch(data["op"], data)

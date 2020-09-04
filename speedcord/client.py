@@ -7,7 +7,7 @@ from aiohttp import ClientWebSocketResponse, WSMessage, WSMsgType
 
 from . import exceptions, packets, wsratelimits
 from .http import HttpClient, Route
-from .dispatcher import DefaultDispatcher
+from .dispatcher import OpcodeDispatcher, EventDispatcher
 from .gateway import DefaultGatewayHandler
 
 __all__ = ("Client",)
@@ -22,16 +22,20 @@ class Client:
         self.logger = logging.getLogger("speedcord")
         self.ws: ClientWebSocketResponse = None
         self.http: HttpClient = None
-        self.dispatcher = DefaultDispatcher(self.loop)
+        self.opcode_dispatcher = OpcodeDispatcher(self.loop)
+        self.event_dispatcher = EventDispatcher(self.loop)
         self.gateway_handler = DefaultGatewayHandler(self)
         self.connected = asyncio.Event()
         self.heartbeat_interval = None
         self.heartbeat_count = None
         self.received_heartbeat_ack = True
         self.error_exit_event = asyncio.Event(loop=self.loop)
+        self.reconnect_token = None
 
         # Default handlers
-        self.dispatcher.register(10, self.handle_hello)
+        self.opcode_dispatcher.register(10, self.handle_hello)
+        self.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
+        self.opcode_dispatcher.register(0, self.handle_dispatch)
 
     def run(self):
         try:
@@ -77,7 +81,10 @@ class Client:
         # Start receiving events
         self.loop.create_task(self.read_loop())
         # Connect to the WS
-        await self.send(packets.identify(self.token, intents=self.intents, mobile_status=True))
+        if self.reconnect_token is None:
+            await self.send(packets.identify(self.token, intents=self.intents, mobile_status=True))
+        else:
+            pass
 
     async def start(self):
         if self.token is None:
@@ -128,11 +135,13 @@ class Client:
 
     # Handle events
     async def handle_hello(self, data):
-        self.logger.debug(data)
-        self.heartbeat_interval = data["heartbeat_interval"]/1000
+        self.heartbeat_interval = data["d"]["heartbeat_interval"]/1000
         self.loop.create_task(self.heartbeat_loop())
         self.logger.debug("Started heartbeat loop")
 
     async def handle_heartbeat_ack(self, data):
         self.received_heartbeat_ack = True
         self.logger.debug("Received heartbeat ack!")
+
+    async def handle_dispatch(self, data):
+        self.event_dispatcher.dispatch(data["t"], data["d"])
