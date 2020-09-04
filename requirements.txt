@@ -1,0 +1,2 @@
+aiohttp~=3.6.2
+setuptools~=50.0.0
