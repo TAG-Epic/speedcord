@@ -31,12 +31,13 @@ class Client:
         self.received_heartbeat_ack = True
         self.error_exit_event = asyncio.Event(loop=self.loop)
         self.session_id = None
-        self.last_event_received = 0
+        self.last_event_received = None
 
         # Default handlers
         self.opcode_dispatcher.register(10, self.handle_hello)
         self.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
         self.opcode_dispatcher.register(0, self.handle_dispatch)
+        self.opcode_dispatcher.register(9, self.handle_invalid_session)
 
         self.event_dispatcher.register("READY", self.handle_ready)
 
@@ -76,7 +77,11 @@ class Client:
                 await self.ws.close()
             self.ws = None
 
-        gateway_url = await self.get_gateway_url()
+        try:
+            gateway_url = await self.get_gateway_url()
+        except exceptions.Unauthorized:
+            self.error_exit_event.clear()
+            raise exceptions.InvalidToken
 
         self.ws = await self.http.create_ws(gateway_url, compression=0)
         self.connected.set()
@@ -116,6 +121,8 @@ class Client:
                 return
             if not self.received_heartbeat_ack:
                 self.logger.error("Gateway stopped responding to heartbeats, reconnecting!")
+                await self.connect()
+                return
             self.received_heartbeat_ack = False
             await self.send({
                 "op": 1,
@@ -139,6 +146,7 @@ class Client:
 
     # Handle events
     async def handle_hello(self, data):
+        self.received_heartbeat_ack = True
         self.heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
         self.loop.create_task(self.heartbeat_loop())
         self.logger.debug("Started heartbeat loop")
@@ -152,3 +160,9 @@ class Client:
 
     async def handle_ready(self, data):
         self.session_id = data["session_id"]
+
+    async def handle_invalid_session(self, data):
+        if not data:
+            self.logger.debug("Invalid session, reconnecting!")
+            self.session_id = None
+        await self.connect()
