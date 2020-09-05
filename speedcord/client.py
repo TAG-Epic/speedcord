@@ -30,12 +30,15 @@ class Client:
         self.heartbeat_count = None
         self.received_heartbeat_ack = True
         self.error_exit_event = asyncio.Event(loop=self.loop)
-        self.reconnect_token = None
+        self.session_id = None
+        self.last_event_received = 0
 
         # Default handlers
         self.opcode_dispatcher.register(10, self.handle_hello)
         self.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
         self.opcode_dispatcher.register(0, self.handle_dispatch)
+
+        self.event_dispatcher.register("READY", self.handle_ready)
 
     def run(self):
         try:
@@ -81,10 +84,11 @@ class Client:
         # Start receiving events
         self.loop.create_task(self.read_loop())
         # Connect to the WS
-        if self.reconnect_token is None:
+        if self.session_id is None:
             await self.send(packets.identify(self.token, intents=self.intents, mobile_status=True))
         else:
-            pass
+            await self.send(
+                packets.resume(self.token, session_id=self.session_id, last_event_received=self.last_event_received))
 
     async def start(self):
         if self.token is None:
@@ -135,7 +139,7 @@ class Client:
 
     # Handle events
     async def handle_hello(self, data):
-        self.heartbeat_interval = data["d"]["heartbeat_interval"]/1000
+        self.heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
         self.loop.create_task(self.heartbeat_loop())
         self.logger.debug("Started heartbeat loop")
 
@@ -145,3 +149,6 @@ class Client:
 
     async def handle_dispatch(self, data):
         self.event_dispatcher.dispatch(data["t"], data["d"])
+
+    async def handle_ready(self, data):
+        self.session_id = data["session_id"]

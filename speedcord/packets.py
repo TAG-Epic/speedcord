@@ -16,3 +16,14 @@ def identify(token: str, intents: int, *, mobile_status=False):
             "intents": intents
         }
     }
+
+
+def resume(token, session_id, last_event_received):
+    return {
+        "op": 6,
+        "d": {
+            "token": token,
+            "session_id": session_id,
+            "seq": last_event_received
+        }
+    }
