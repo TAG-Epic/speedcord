@@ -15,14 +15,14 @@ __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents: int, token=None, *, use_mobile_status=False):
+    def __init__(self, intents: int, token=None, *, use_mobile_status=False, shard_count: int = None):
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
         self.use_mobile_status = use_mobile_status
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
-        self.shard_count: int = None
+        self.shard_count: int = shard_count
         self.shards = []
         self.loop = asyncio.get_event_loop()
         self.logger = logging.getLogger("speedcord")
