@@ -3,9 +3,8 @@ Created by Epic at 9/1/20
 """
 import asyncio
 import logging
-from aiohttp import ClientWebSocketResponse, WSMessage, WSMsgType
 
-from . import exceptions, packets, wsratelimits
+from . import exceptions
 from .http import HttpClient, Route
 from .dispatcher import OpcodeDispatcher, EventDispatcher
 from .gateway import DefaultGatewayHandler
