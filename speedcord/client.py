@@ -15,14 +15,13 @@ __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents: int, token=None, *, use_mobile_status=False, shard_count: int = None):
+    def __init__(self, intents: int, token=None, *, shard_count: int = None):
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
-        self.use_mobile_status = use_mobile_status
+        self.shard_count: int = shard_count
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
-        self.shard_count: int = shard_count
         self.shards = []
         self.loop = asyncio.get_event_loop()
         self.logger = logging.getLogger("speedcord")
@@ -31,10 +30,7 @@ class Client:
         self.event_dispatcher = EventDispatcher(self.loop)
         self.gateway_handler = DefaultGatewayHandler(self)
         self.connected = asyncio.Event()
-        self.heartbeat_interval = None
-        self.heartbeat_count = None
-        self.received_heartbeat_ack = True
-        self.error_exit_event = asyncio.Event(loop=self.loop)
+        self.exit_event = asyncio.Event(loop=self.loop)
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -73,7 +69,7 @@ class Client:
         try:
             gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
         except exceptions.Unauthorized:
-            self.error_exit_event.clear()
+            self.exit_event.clear()
             raise exceptions.InvalidToken
 
         if self.shard_count is None or self.shard_count < shard_count:
@@ -98,11 +94,12 @@ class Client:
 
         await self.connect()
 
-        await self.error_exit_event.wait()
+        await self.exit_event.wait()
         await self.close()
 
     async def close(self):
         self.connected.clear()
+        self.exit_event.set()
         await self.http.close()
         for shard in self.shards:
             await shard.close()
