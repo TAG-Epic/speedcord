@@ -9,6 +9,7 @@ from . import exceptions, packets, wsratelimits
 from .http import HttpClient, Route
 from .dispatcher import OpcodeDispatcher, EventDispatcher
 from .gateway import DefaultGatewayHandler
+from .shard import DefaultShard
 
 __all__ = ("Client",)
 
@@ -21,9 +22,10 @@ class Client:
         self.use_mobile_status = use_mobile_status
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
+        self.shard_count: int = None
+        self.shards = []
         self.loop = asyncio.get_event_loop()
         self.logger = logging.getLogger("speedcord")
-        self.ws: ClientWebSocketResponse = None
         self.http: HttpClient = None
         self.opcode_dispatcher = OpcodeDispatcher(self.loop)
         self.event_dispatcher = EventDispatcher(self.loop)
@@ -33,16 +35,9 @@ class Client:
         self.heartbeat_count = None
         self.received_heartbeat_ack = True
         self.error_exit_event = asyncio.Event(loop=self.loop)
-        self.session_id = None
-        self.last_event_received = None
 
         # Default event handlers
-        self.opcode_dispatcher.register(10, self.handle_hello)
-        self.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
         self.opcode_dispatcher.register(0, self.handle_dispatch)
-        self.opcode_dispatcher.register(9, self.handle_invalid_session)
-
-        self.event_dispatcher.register("READY", self.handle_ready)
 
     def run(self):
         try:
@@ -50,7 +45,7 @@ class Client:
         except KeyboardInterrupt:
             self.loop.run_until_complete(self.close())
 
-    async def get_gateway_url(self):
+    async def get_gateway(self):
         route = Route("GET", "/gateway/bot")
         try:
             r = await self.http.request(route)
@@ -61,42 +56,39 @@ class Client:
 
         shards = data["shards"]
         remaining_connections = data["session_start_limit"]["remaining"]
+        connections_reset_after = data["session_start_limit"]["reset_after"]
         gateway_url = data["url"]
 
-        if shards != 1:
-            raise exceptions.ShardingNotSupported
         if remaining_connections == 0:
             raise exceptions.ConnectionsExceeded
 
         self.logger.debug(f"{remaining_connections} gateway connections left!")
 
-        return gateway_url
+        return gateway_url, shards, remaining_connections, connections_reset_after
 
     async def connect(self):
         if self.token is None:
             raise exceptions.InvalidToken
-        if self.ws is not None:
-            if not self.ws.closed:
-                await self.ws.close()
-            self.ws = None
 
         try:
-            gateway_url = await self.get_gateway_url()
+            gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
         except exceptions.Unauthorized:
             self.error_exit_event.clear()
             raise exceptions.InvalidToken
 
-        self.ws = await self.http.create_ws(gateway_url, compression=0)
-        self.connected.set()
+        if self.shard_count is None or self.shard_count < shard_count:
+            self.shard_count = shard_count
 
-        # Start receiving events
-        self.loop.create_task(self.read_loop())
-        # Connect to the WS
-        if self.session_id is None:
-            await self.send(packets.identify(self.token, intents=self.intents, mobile_status=self.use_mobile_status))
-        else:
-            await self.send(
-                packets.resume(self.token, session_id=self.session_id, last_event_received=self.last_event_received))
+        for shard_id in range(self.shard_count):
+            shard = DefaultShard(shard_id, self, loop=self.loop)
+            await shard.connect(gateway_url)
+            self.shards.append(shard)
+            remaining_connections -= 1
+            if remaining_connections == 0:
+                self.logger.info("Max connections reached!")
+                await asyncio.sleep(connections_reset_after / 1000)
+                gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
+        self.logger.info("All shards connected!")
 
     async def start(self):
         if self.token is None:
@@ -108,64 +100,11 @@ class Client:
         await self.error_exit_event.wait()
         await self.close()
 
-    async def read_loop(self):
-        message: WSMessage  # Autocompletion fix
-        async for message in self.ws:
-            if message.type == WSMsgType.CLOSE:
-                self.logger.critical(message.json())
-                self.logger.critical(self.ws.close_code)
-                self.error_exit_event.set()
-            elif message.type == WSMsgType.TEXT:
-                await self.gateway_handler.on_receive(message.json())
-
-    async def heartbeat_loop(self):
-        while True:
-            if self.ws is None or self.ws.closed:
-                return
-            if not self.received_heartbeat_ack:
-                self.logger.error("Gateway stopped responding to heartbeats, reconnecting!")
-                await self.connect()
-                return
-            self.received_heartbeat_ack = False
-            await self.send({
-                "op": 1,
-                "d": self.heartbeat_count
-            })
-            if self.heartbeat_count is None:
-                self.heartbeat_count = 1
-            else:
-                self.heartbeat_count += 1
-            await asyncio.sleep(self.heartbeat_interval)
-
-    async def send(self, data: dict):
-        if self.ws.closed:
-            raise exceptions.GatewayClosed
-        await wsratelimits.send_ws(self.ws, data)
-
     async def close(self):
         await self.http.close()
-        if self.ws is not None and not self.ws.closed:
-            await self.ws.close()
+        for shard in self.shards:
+            await shard.close()
 
     # Handle events
-    async def handle_hello(self, data):
-        self.received_heartbeat_ack = True
-        self.heartbeat_interval = data["d"]["heartbeat_interval"] / 1000
-        self.loop.create_task(self.heartbeat_loop())
-        self.logger.debug("Started heartbeat loop")
-
-    async def handle_heartbeat_ack(self, data):
-        self.received_heartbeat_ack = True
-        self.logger.debug("Received heartbeat ack!")
-
-    async def handle_dispatch(self, data):
-        self.event_dispatcher.dispatch(data["t"], data["d"])
-
-    async def handle_ready(self, data):
-        self.session_id = data["session_id"]
-
-    async def handle_invalid_session(self, data):
-        if not data:
-            self.logger.debug("Invalid session, reconnecting!")
-            self.session_id = None
-        await self.connect()
+    async def handle_dispatch(self, data, shard):
+        self.event_dispatcher.dispatch(data["t"], data["d"], shard)
