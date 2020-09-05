@@ -88,6 +88,7 @@ class Client:
                 self.logger.info("Max connections reached!")
                 await asyncio.sleep(connections_reset_after / 1000)
                 gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
+        self.connected.set()
         self.logger.info("All shards connected!")
 
     async def start(self):
@@ -101,6 +102,7 @@ class Client:
         await self.close()
 
     async def close(self):
+        self.connected.clear()
         await self.http.close()
         for shard in self.shards:
             await shard.close()
