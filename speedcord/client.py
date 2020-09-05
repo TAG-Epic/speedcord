@@ -14,10 +14,13 @@ __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents: int, token=None):
+    def __init__(self, intents: int, token=None, *, use_mobile_status=False):
+        # Configurable stuff
         self.intents = int(intents)
         self.token = token
+        self.use_mobile_status = use_mobile_status
 
+        # Things used by the lib, usually doesn't need to get changed but can if you want to.
         self.loop = asyncio.get_event_loop()
         self.logger = logging.getLogger("speedcord")
         self.ws: ClientWebSocketResponse = None
@@ -33,7 +36,7 @@ class Client:
         self.session_id = None
         self.last_event_received = None
 
-        # Default handlers
+        # Default event handlers
         self.opcode_dispatcher.register(10, self.handle_hello)
         self.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -90,7 +93,7 @@ class Client:
         self.loop.create_task(self.read_loop())
         # Connect to the WS
         if self.session_id is None:
-            await self.send(packets.identify(self.token, intents=self.intents, mobile_status=True))
+            await self.send(packets.identify(self.token, intents=self.intents, mobile_status=self.use_mobile_status))
         else:
             await self.send(
                 packets.resume(self.token, session_id=self.session_id, last_event_received=self.last_event_received))
