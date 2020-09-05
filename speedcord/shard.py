@@ -117,12 +117,18 @@ class DefaultShard:
         self.logger.debug("Started heartbeat loop")
 
     async def handle_heartbeat_ack(self, data, shard):
+        if shard.id != self.id:
+            return
         self.received_heartbeat_ack = True
 
     async def handle_ready(self, data, shard):
+        if shard.id != self.id:
+            return
         self.session_id = data["session_id"]
 
     async def handle_invalid_session(self, data, shard):
+        if shard.id != self.id:
+            return
         if not data:
             # Session is no longer valid, create a new session
             self.session_id = None
