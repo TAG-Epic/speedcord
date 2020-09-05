@@ -129,7 +129,7 @@ class DefaultShard:
     async def handle_invalid_session(self, data, shard):
         if shard.id != self.id:
             return
-        if not data:
+        if not data.get("d", False):
             # Session is no longer valid, create a new session
             self.session_id = None
         await self.connect(self.gateway_url)
