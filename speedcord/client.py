@@ -16,6 +16,12 @@ __all__ = ("Client",)
 
 class Client:
     def __init__(self, intents: int, token=None, *, shard_count: int = None):
+        """
+        The client to interact with the discord API
+        :param intents: the intents to use
+        :param token: the discord bot token to use
+        :param shard_count: how many shards to use
+        """
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
@@ -36,12 +42,22 @@ class Client:
         self.opcode_dispatcher.register(0, self.handle_dispatch)
 
     def run(self):
+        """
+        Starts the client
+        """
         try:
             self.loop.run_until_complete(self.start())
         except KeyboardInterrupt:
             self.loop.run_until_complete(self.close())
 
     async def get_gateway(self):
+        """
+        Get details about the gateway
+        :return: wss url to connect to
+        :return: how many shards to use
+        :return: how many gateway connections left
+        :return: how many ms until the gateway connection limit resets
+        """
         route = Route("GET", "/gateway/bot")
         try:
             r = await self.http.request(route)
@@ -63,6 +79,9 @@ class Client:
         return gateway_url, shards, remaining_connections, connections_reset_after
 
     async def connect(self):
+        """
+        Connects to discord and spawns shards. Start has to be called first!
+        """
         if self.token is None:
             raise exceptions.InvalidToken
 
@@ -88,6 +107,9 @@ class Client:
         self.logger.info("All shards connected!")
 
     async def start(self):
+        """
+        Sets up the http client and connects to discord and spawns shards.
+        """
         if self.token is None:
             raise exceptions.InvalidToken
         self.http = HttpClient(self.token, loop=self.loop)
@@ -98,6 +120,9 @@ class Client:
         await self.close()
 
     async def close(self):
+        """
+        Closes the http client and disconnects all shards
+        """
         self.connected.clear()
         self.exit_event.set()
         await self.http.close()
@@ -105,6 +130,10 @@ class Client:
             await shard.close()
 
     def listen(self, event):
+        """
+        Listen to a event or a opcode.
+        :param event: a opcode or event name to listen to
+        """
         def get_func(func):
             if type(event) == int:
                 self.opcode_dispatcher.register(event, func)
@@ -116,4 +145,9 @@ class Client:
 
     # Handle events
     async def handle_dispatch(self, data, shard):
+        """
+        Dispatches a event to the event handler
+        :param data: the data to dispatch
+        :param shard: What shard was the event received on
+        """
         self.event_dispatcher.dispatch(data["t"], data["d"], shard)
