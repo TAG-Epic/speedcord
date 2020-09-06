@@ -3,6 +3,7 @@ Created by Epic at 9/1/20
 """
 import asyncio
 import logging
+from functools import wraps
 
 from . import exceptions
 from .http import HttpClient, Route
@@ -102,6 +103,16 @@ class Client:
         await self.http.close()
         for shard in self.shards:
             await shard.close()
+
+    def listen(self, event):
+        def get_func(func):
+            if type(event) == int:
+                self.opcode_dispatcher.register(event, func)
+            elif type(event) == str:
+                self.event_dispatcher.register(event, func)
+            else:
+                raise TypeError("Invalid event type!")
+        return get_func
 
     # Handle events
     async def handle_dispatch(self, data, shard):
