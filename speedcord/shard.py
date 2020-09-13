@@ -22,6 +22,7 @@ class DefaultShard:
         self.received_heartbeat_ack = True
         self.heartbeat_interval = None
         self.heartbeat_count = None
+        self.failed_heartbeats = 0
         self.session_id = None
         self.last_event_id = None  # This gets modified by gateway.py
 
@@ -96,7 +97,13 @@ class DefaultShard:
     async def heartbeat_loop(self):
         while self.connected.is_set():
             if not self.received_heartbeat_ack:
-                self.logger.warning("WebSocket is no longer responding to heartbeats!")
+                self.failed_heartbeats += 1
+                self.logger.info(
+                    "WebSocket did not respond to a heartbeat! Failed attempts: " + str(self.failed_heartbeats))
+                if self.failed_heartbeats > 2:
+                    self.logger.warning("Gateway stopped responding, reconnecting!")
+                    await self.connect(self.gateway_url)
+                    return
             self.received_heartbeat_ack = False
             await self.send({
                 "op": 1,
@@ -120,6 +127,7 @@ class DefaultShard:
         if shard.id != self.id:
             return
         self.received_heartbeat_ack = True
+        self.failed_heartbeats = 0
 
     async def handle_ready(self, data, shard):
         if shard.id != self.id:
@@ -133,5 +141,3 @@ class DefaultShard:
             # Session is no longer valid, create a new session
             self.session_id = None
         await self.connect(self.gateway_url)
-
-
