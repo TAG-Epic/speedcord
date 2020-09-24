@@ -11,25 +11,25 @@ class MessageContext:
     id: int
     channel_id: int
     guild_id: Optional[int]
-    author: Dict[str, Any]  # TODO: Type this
-    member: Optional[Dict[str, Any]]  # TODO: Type this
+    author: Dict[str, Any]
+    member: Optional[Dict[str, Any]]
     content: str
-    timestamp: int
-    edited_timestamp: Optional[int]
+    timestamp: str
+    edited_timestamp: Optional[str]
     tts: bool
     mention_everyone: bool
-    mentions: None  # TODO: Type this
+    mentions: Dict[str, Any]
     mention_roles: List[int]
-    mention_channels: None  # TODO: Type this
-    attachments: List[Any]  # TODO: Type this
+    mention_channels: Dict[str, Any]
+    attachments: List[Dict[str, Any]]
     embeds: List[Dict[str, Any]]
-    reactions: List[Any]  # TODO: Type this
+    reactions: List[Dict[str, Any]]
     nonce: Optional[Union[int, str]]
     pinned: bool
     webhook_id: Optional[int]
     type: int
-    activity: Optional[Any]  # TODO: Type this
-    application: Optional[Any]  # TODO: Type this
-    message_reference: Optional[Any]  # TODO: Type this
+    activity: Optional[Dict[str, Any]]
+    application: Optional[Dict[str, Any]]
+    message_reference: Optional[Dict[str, int]]
     flags: Optional[int]
 
