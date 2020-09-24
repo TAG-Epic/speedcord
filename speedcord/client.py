@@ -1,7 +1,7 @@
 """
 Created by Epic at 9/1/20
 """
-import asyncio
+from asyncio import Event, get_event_loop, sleep
 from logging import getLogger
 
 from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
@@ -28,14 +28,14 @@ class Client:
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
         self.shards = []
-        self.loop = asyncio.get_event_loop()
+        self.loop = get_event_loop()
         self.logger = getLogger("speedcord")
         self.http: HttpClient = None
         self.opcode_dispatcher = OpcodeDispatcher(self.loop)
         self.event_dispatcher = EventDispatcher(self.loop)
         self.gateway_handler = DefaultGatewayHandler(self)
-        self.connected = asyncio.Event()
-        self.exit_event = asyncio.Event(loop=self.loop)
+        self.connected = Event()
+        self.exit_event = Event(loop=self.loop)
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -100,7 +100,7 @@ class Client:
             remaining_connections -= 1
             if remaining_connections == 0:
                 self.logger.info("Max connections reached!")
-                await asyncio.sleep(connections_reset_after / 1000)
+                await sleep(connections_reset_after / 1000)
                 gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
         self.connected.set()
         self.logger.info("All shards connected!")
