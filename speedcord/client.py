@@ -14,7 +14,7 @@ __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents: int, token=None, *, shard_count: int = None):
+    def __init__(self, intents, token=None, *, shard_count=None):
         """
         The client to interact with the discord API
         :param intents: the intents to use
@@ -24,13 +24,13 @@ class Client:
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
-        self.shard_count: int = shard_count
+        self.shard_count = shard_count
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
         self.shards = []
         self.loop = get_event_loop()
         self.logger = getLogger("speedcord")
-        self.http: HttpClient = None
+        self.http = None
         self.opcode_dispatcher = OpcodeDispatcher(self.loop)
         self.event_dispatcher = EventDispatcher(self.loop)
         self.gateway_handler = DefaultGatewayHandler(self)
@@ -133,6 +133,7 @@ class Client:
         Listen to a event or a opcode.
         :param event: a opcode or event name to listen to
         """
+
         def get_func(func):
             if type(event) == int:
                 self.opcode_dispatcher.register(event, func)
@@ -140,6 +141,7 @@ class Client:
                 self.event_dispatcher.register(event, func)
             else:
                 raise TypeError("Invalid event type!")
+
         return get_func
 
     # Handle events
