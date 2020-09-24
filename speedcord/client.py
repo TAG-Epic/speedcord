@@ -4,7 +4,7 @@ Created by Epic at 9/1/20
 import asyncio
 import logging
 
-from . import exceptions
+from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
 from .http import HttpClient, Route
 from .dispatcher import OpcodeDispatcher, EventDispatcher
 from .gateway import DefaultGatewayHandler
@@ -60,7 +60,7 @@ class Client:
         route = Route("GET", "/gateway/bot")
         try:
             r = await self.http.request(route)
-        except exceptions.Unauthorized:
+        except Unauthorized:
             await self.close()
             raise
         data = await r.json()
@@ -71,7 +71,7 @@ class Client:
         gateway_url = data["url"]
 
         if remaining_connections == 0:
-            raise exceptions.ConnectionsExceeded
+            raise ConnectionsExceeded
 
         self.logger.debug(f"{remaining_connections} gateway connections left!")
 
@@ -82,13 +82,13 @@ class Client:
         Connects to discord and spawns shards. Start has to be called first!
         """
         if self.token is None:
-            raise exceptions.InvalidToken
+            raise InvalidToken
 
         try:
             gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
-        except exceptions.Unauthorized:
+        except Unauthorized:
             self.exit_event.clear()
-            raise exceptions.InvalidToken
+            raise InvalidToken
 
         if self.shard_count is None or self.shard_count < shard_count:
             self.shard_count = shard_count
@@ -110,7 +110,7 @@ class Client:
         Sets up the http client and connects to discord and spawns shards.
         """
         if self.token is None:
-            raise exceptions.InvalidToken
+            raise InvalidToken
         self.http = HttpClient(self.token, loop=self.loop)
 
         await self.connect()
