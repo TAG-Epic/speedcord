@@ -6,7 +6,7 @@ Created by Epic at 9/24/20
 class BaseContext:
     def __init__(self, client, data):
         """
-        Basic context, used with client.get_context
+        Basic context, use one of the subclasses for typing
         :param client: the client
         """
         self.client = client
