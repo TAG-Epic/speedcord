@@ -1,7 +1,7 @@
 """
 Created by Epic at 9/4/20
 """
-from setuptools import setup
+from setuptools import setup, find_packages
 import re
 
 with open('speedcord/values.py') as f:
@@ -10,7 +10,7 @@ with open('speedcord/values.py') as f:
 setup(
     name='speedcord',
     version=version,
-    packages=["speedcord"],
+    packages=find_packages(),
     url='https://github.com/tag-epic/speedcord',
     license='MIT',
     author='Epic',
