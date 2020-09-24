@@ -2,7 +2,7 @@
 Created by Epic at 9/1/20
 """
 import asyncio
-import logging
+from logging import getLogger
 
 from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
 from .http import HttpClient, Route
@@ -29,7 +29,7 @@ class Client:
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
         self.shards = []
         self.loop = asyncio.get_event_loop()
-        self.logger = logging.getLogger("speedcord")
+        self.logger = getLogger("speedcord")
         self.http: HttpClient = None
         self.opcode_dispatcher = OpcodeDispatcher(self.loop)
         self.event_dispatcher = EventDispatcher(self.loop)
