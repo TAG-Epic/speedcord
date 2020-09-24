@@ -32,4 +32,5 @@ class MessageContext:
     application: Optional[Dict[str, Any]]
     message_reference: Optional[Dict[str, int]]
     flags: Optional[int]
+    ...
 
