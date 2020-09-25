@@ -2,4 +2,4 @@
 Created by Epic at 9/1/20
 """
 
-version = "0.1.28"
+version = "0.1.29"
