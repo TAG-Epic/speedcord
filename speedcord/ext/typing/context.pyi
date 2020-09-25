@@ -34,3 +34,6 @@ class MessageContext:
     flags: Optional[int]
     ...
 
+    async def send(self, *, content: str, nonce: Union[int, str], tts: bool, embed: Dict[str, Any], allowed_mentions: Dict[str, Any]):
+        ...
+

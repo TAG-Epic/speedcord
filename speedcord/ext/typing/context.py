@@ -1,6 +1,7 @@
 """
 Created by Epic at 9/24/20
 """
+from speedcord.http import Route
 
 
 class BaseContext:
@@ -47,3 +48,7 @@ class MessageContext(BaseContext):
     application = None
     message_reference = None
     flags = None
+
+    async def send(self, **kwargs):
+        route = Route("POST", "/channels/{channel_id}/messages", channel_id=self.channel_id)
+        return await self.client.http.request(route, json=kwargs)
