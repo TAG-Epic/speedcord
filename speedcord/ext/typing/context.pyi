@@ -1,11 +1,14 @@
 from speedcord import Client
 from typing import Dict, Any, Optional, List, Union
 
+
 class BaseContext:
     client: Client
     data: Dict[str, Any]
+
     def __init__(self, client: Client, data: Dict[str, Any]):
         ...
+
 
 class MessageContext:
     id: int
@@ -34,6 +37,6 @@ class MessageContext:
     flags: Optional[int]
     ...
 
-    async def send(self, *, content: str, nonce: Union[int, str], tts: bool, embed: Dict[str, Any], allowed_mentions: Dict[str, Any]):
+    async def send(self, *, content: Optional[str], nonce: Optional[Union[int, str]], tts: Optional[bool],
+                   embed: Optional[Dict[str, Any]], allowed_mentions: Optional[Dict[str, Any]]):
         ...
-
