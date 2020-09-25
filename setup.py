@@ -15,6 +15,6 @@ setup(
     license='MIT',
     author='Epic',
     install_requires=["aiohttp", "setuptools-git"],
-    package_data={"speedcord": ["*.pyi", "*/*.pyi"]},
+    package_data={"": ["*.pyi"]},
     description='A simple lightweight discord library',
 )
