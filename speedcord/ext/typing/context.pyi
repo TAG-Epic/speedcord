@@ -37,6 +37,6 @@ class MessageContext:
     flags: Optional[int]
     ...
 
-    async def send(self, *, content: Optional[str], nonce: Optional[Union[int, str]], tts: Optional[bool],
-                   embed: Optional[Dict[str, Any]], allowed_mentions: Optional[Dict[str, Any]]):
+    async def send(self, *, content: str = None, nonce: Union[int, str] = None, tts: bool = None,
+                   embed: Dict[str, Any] = None, allowed_mentions: Dict[str, Any] = None):
         ...
