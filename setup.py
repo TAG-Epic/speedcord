@@ -14,7 +14,10 @@ setup(
     url='https://github.com/tag-epic/speedcord',
     license='MIT',
     author='Epic',
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     install_requires=["aiohttp", "setuptools-git"],
     package_data={"": ["*.pyi"]},
     description='A simple lightweight discord library',
+    python_requires='>=3.7',
 )
