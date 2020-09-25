@@ -14,6 +14,6 @@ setup(
     url='https://github.com/tag-epic/speedcord',
     license='MIT',
     author='Epic',
-    install_requires=["aiohttp"],
-    description='A simple lightweight discord library'
+    install_requires=["aiohttp", "setuptools-git"],
+    description='A simple lightweight discord library',
 )
