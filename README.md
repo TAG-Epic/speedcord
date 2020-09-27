@@ -1,6 +1,8 @@
 # Speedcord
 A simple discord API wrapper - without the bullshit
 
+We have a discord! Join us at https://discord.gg/yxrprWz
+
 ## Contributions
 Some ideas of what we need in speedcord
 
