@@ -99,7 +99,9 @@ class Client:
         if self.shard_count is None or self.shard_count < shard_count:
             self.shard_count = shard_count
 
-        for shard_id in range(self.shard_count):
+        shard_ids = self.shard_ids or range(self.shard_count)
+        for shard_id in shard_ids:
+            self.logger.debug(f"Launching shard {shard_id}")
             shard = DefaultShard(shard_id, self, loop=self.loop)
             await shard.connect(gateway_url)
             self.shards.append(shard)
