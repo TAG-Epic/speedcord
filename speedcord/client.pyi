@@ -1,7 +1,7 @@
 from typing import List, Optional, Union
 from asyncio import AbstractEventLoop
 from logging import Logger
-from asyncio import Event
+from asyncio import Event, Lock
 
 from .shard import DefaultShard
 from .http import HttpClient
@@ -25,6 +25,8 @@ class Client:
     gateway_handler: DefaultGatewayHandler
     connected: Event
     exit_event: Event
+    remaining_connections: Optional[int]
+    connection_lock: Lock
 
     def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: List[int]):
         ...

@@ -44,7 +44,14 @@ class DefaultShard:
         self.loop.create_task(self.read_loop())
         self.connected.set()
         if self.session_id is None:
-            await self.identify()
+            async with self.client.connection_lock:
+                self.client.remaining_connections -= 1
+                if self.client.remaining_connections <= 1:
+                    self.logger.info("Max connections reached!")
+                    gateway_url, shard_count, _, connections_reset_after = await self.client.get_gateway()
+                    await sleep(connections_reset_after / 1000)
+                    gateway_url, shard_count, self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
+                await self.identify()
         else:
             await self.resume()
 

@@ -1,7 +1,7 @@
 """
 Created by Epic at 9/1/20
 """
-from asyncio import Event, get_event_loop, sleep
+from asyncio import Event, get_event_loop, sleep, Lock
 from logging import getLogger
 
 from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
@@ -38,6 +38,8 @@ class Client:
         self.gateway_handler = DefaultGatewayHandler(self)
         self.connected = Event()
         self.exit_event = Event(loop=self.loop)
+        self.remaining_connections = None
+        self.connection_lock = Lock(loop=self.loop)
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -78,7 +80,7 @@ class Client:
 
         if remaining_connections == 0:
             raise ConnectionsExceeded
-
+        self.remaining_connections = remaining_connections
         self.logger.debug(f"{remaining_connections} gateway connections left!")
 
         return gateway_url, shards, remaining_connections, connections_reset_after
@@ -91,7 +93,7 @@ class Client:
             raise InvalidToken
 
         try:
-            gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
+            gateway_url, shard_count, _, connections_reset_after = await self.get_gateway()
         except Unauthorized:
             self.exit_event.clear()
             raise InvalidToken
@@ -103,13 +105,8 @@ class Client:
         for shard_id in shard_ids:
             self.logger.debug(f"Launching shard {shard_id}")
             shard = DefaultShard(shard_id, self, loop=self.loop)
-            await shard.connect(gateway_url)
+            self.loop.create_task(shard.connect(gateway_url))
             self.shards.append(shard)
-            remaining_connections -= 1
-            if remaining_connections == 0:
-                self.logger.info("Max connections reached!")
-                await sleep(connections_reset_after / 1000)
-                gateway_url, shard_count, remaining_connections, connections_reset_after = await self.get_gateway()
         self.connected.set()
         self.logger.info("All shards connected!")
 
