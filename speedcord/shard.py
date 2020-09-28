@@ -6,6 +6,7 @@ from asyncio import Event, Lock, AbstractEventLoop, sleep
 from aiohttp import ClientWebSocketResponse, WSMessage, WSMsgType
 import logging
 from sys import platform
+from ujson import loads, dumps
 
 
 class DefaultShard:
@@ -55,7 +56,7 @@ class DefaultShard:
         message: WSMessage  # Fix typehinting
         async for message in self.ws:
             if message.type == WSMsgType.TEXT:
-                await self.client.gateway_handler.on_receive(message.json(), self)
+                await self.client.gateway_handler.on_receive(message.json(loads=loads), self)
             elif message.type in [WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED]:
                 self.logger.warning(
                     f"WebSocket is closing! Details: {message.json()}. Close code: {self.ws.close_code}")
@@ -65,7 +66,7 @@ class DefaultShard:
     async def send(self, data: dict):
         await self.ws_ratelimiting_lock.acquire()
         self.logger.debug("Data sent: " + str(data))
-        await self.ws.send_json(data)
+        await self.ws.send_json(data, dumps=dumps)
         await sleep(.5)
         self.ws_ratelimiting_lock.release()
 
