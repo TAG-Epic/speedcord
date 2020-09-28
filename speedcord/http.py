@@ -50,7 +50,7 @@ class HttpClient:
         self.baseuri = baseuri
         self.token = token
         self.loop = loop
-        self.session = ClientSession(loop=loop)
+        self.session = ClientSession()
         self.logger = logging.getLogger("speedcord.http")
 
         self.ratelimit_locks = {}
