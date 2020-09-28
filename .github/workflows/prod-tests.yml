@@ -1,0 +1,25 @@
+name: Test Bot
+on:
+  - push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+      - name: Install dependencies
+        run: |
+          pip install setuptools wheel twine
+      - name: Install speedcord
+        run: |
+          python setup.py install
+      - name: Run tests
+        env:
+          BOT_TOKEN: ${{ secrets.TEST_BOT_TOKEN }}
+        run: |
+          cd .github/tools
+          python run_prod_tests.py

@@ -16,7 +16,7 @@ jobs:
           pip install setuptools wheel twine
       - name: Update version
         run: |
-          cd .github/buildtools
+          cd .github/tools
           mv update_version.py ../../
           cd ../../
           python update_version.py
