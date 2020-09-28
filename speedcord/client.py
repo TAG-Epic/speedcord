@@ -42,6 +42,10 @@ class Client:
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
 
+        # Check types
+        if shard_count is None and shard_ids is not None:
+            raise TypeError("You have to set shard_count if you use shard_ids")
+
     def run(self):
         """
         Starts the client
