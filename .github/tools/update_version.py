@@ -11,7 +11,7 @@ last_hash_file = Path(".github/tools/last_publish_hash.hash")
 with last_hash_file.open("r+") as f:
     last_hash = f.read()
 
-new_hash = check_output("sha256sum dist/*.egg").decode("utf-8").split(" ")[0]
+new_hash = check_output("sha256sum dist/*").decode("utf-8").split(" ")[0]
 if last_hash == new_hash:
     exit(0)
 with last_hash_file.open("w+") as f:
