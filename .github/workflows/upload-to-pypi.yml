@@ -16,7 +16,7 @@ jobs:
           pip install setuptools wheel twine
       - name: Build
         run: |
-          - python setup.py sdist
+          python setup.py sdist
       - name: Update version
         run: |
           cd .github/tools
