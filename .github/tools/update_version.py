@@ -5,6 +5,17 @@ from pathlib import Path
 from subprocess import check_output
 
 version_file = Path("speedcord/values.py")
+last_hash_file = Path(".github/tools/last_publish_hash.hash")
+
+
+with last_hash_file.open("r+") as f:
+    last_hash = f.read()
+
+new_hash = check_output("sha256sum dist/*.egg").decode("utf-8").split(" ")[0]
+if last_hash == new_hash:
+    exit(0)
+with last_hash_file.open("w+") as f:
+    f.write(new_hash)
 
 last_commit = check_output(["git", "log", "-1", "--pretty=%B"]).decode("utf-8")
 

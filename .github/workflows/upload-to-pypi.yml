@@ -14,21 +14,23 @@ jobs:
       - name: Install dependencies
         run: |
           pip install setuptools wheel twine
+      - name: Build
+        run: |
+          - python setup.py sdist
       - name: Update version
         run: |
           cd .github/tools
           mv update_version.py ../../
           cd ../../
           python update_version.py
-          git add speedcord/values.py
+          git add speedcord/values.py .github/tools/last_publish_hash.hash
           git config --global user.email "actions@github.com"
           git config --global user.name "GitHub Actions"
-          git commit -m "Bump version"
-      - name: Build and publish
+          git commit -m "Bump version & update last_hash file"
+      - name: Publish to PYPI
         env:
           TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
         run: |
-          python setup.py sdist
           twine upload dist/*
           git push
