@@ -28,7 +28,7 @@ class Client:
     remaining_connections: Optional[int]
     connection_lock: Lock
 
-    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: List[int]):
+    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: Optional[List[int]] = None):
         ...
     def run(self):
         ...
