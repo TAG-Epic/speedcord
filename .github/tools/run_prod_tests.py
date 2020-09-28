@@ -11,7 +11,7 @@ class Tests(unittest.TestCase):
         async def on_ready(data, shard):
             bot.exit_event.set()
 
-        bot.start()
+        bot.run()
 
     def test_start_shardcount_no_id(self):
         bot = Client(0, token=env["BOT_TOKEN"], shard_count=5)
@@ -20,7 +20,7 @@ class Tests(unittest.TestCase):
         async def on_ready(data, shard):
             bot.exit_event.set()
 
-        bot.start()
+        bot.run()
 
     def test_start_shardcount_id(self):
         bot = Client(0, token=env["BOT_TOKEN"], shard_count=5, shard_ids=[0, 2, 4])
@@ -29,7 +29,7 @@ class Tests(unittest.TestCase):
         async def on_ready(data, shard):
             bot.exit_event.set()
 
-        bot.start()
+        bot.run()
 
 
 if __name__ == '__main__':
