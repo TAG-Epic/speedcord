@@ -14,17 +14,19 @@ __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents, token=None, *, shard_count=None):
+    def __init__(self, intents, token=None, *, shard_count=None, shard_ids=None):
         """
         The client to interact with the discord API
         :param intents: the intents to use
         :param token: the discord bot token to use
         :param shard_count: how many shards to use
+        :param shard_ids: A list of shard ids to spawn
         """
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
         self.shard_count = shard_count
+        self.shard_ids = shard_ids
 
         # Things used by the lib, usually doesn't need to get changed but can if you want to.
         self.shards = []

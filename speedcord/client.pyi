@@ -14,6 +14,7 @@ class Client:
     intents: int
     token: str
     shard_count: int
+    shard_ids: List[int]
 
     shards: List[DefaultShard]
     loop: AbstractEventLoop
@@ -25,7 +26,7 @@ class Client:
     connected: Event
     exit_event: Event
 
-    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None):
+    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: List[int]):
         ...
     def run(self):
         ...
