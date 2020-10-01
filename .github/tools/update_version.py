@@ -3,15 +3,28 @@ Created by Epic at 9/4/20
 """
 from pathlib import Path
 from subprocess import check_output
+import hashlib
 
 version_file = Path("speedcord/values.py")
 last_hash_file = Path(".github/tools/last_publish_hash.hash")
 
-
 with last_hash_file.open("r+") as f:
     last_hash = f.read()
 
-new_hash = check_output("sha256sum dist/*").decode("utf-8").split(" ")[0]
+
+def get_hash(file):
+    hash_md5 = hashlib.md5()
+    with file.open("rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+
+dist_path = Path("dist/")
+
+dist_output = list(dist_path.glob("*.egg"))[0]
+
+new_hash = get_hash(dist_output)
 if last_hash == new_hash:
     exit(0)
 with last_hash_file.open("w+") as f:
