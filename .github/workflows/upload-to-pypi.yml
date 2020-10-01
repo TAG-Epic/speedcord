@@ -19,6 +19,7 @@ jobs:
           python setup.py sdist
       - name: Update version
         run: |
+          ls
           cd .github/tools
           mv update_version.py ../../
           cd ../../
