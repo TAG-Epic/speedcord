@@ -1,6 +1,8 @@
 name: Upload to PYPI
 on:
-  - push
+  push:
+   branches:
+    - master
 
 jobs:
   upload:
