@@ -20,7 +20,7 @@ class Client:
         :param intents: the intents to use
         :param token: the discord bot token to use
         :param shard_count: how many shards to use
-        :param shard_ids: A list of shard ids to spawn
+        :param shard_ids: A list of shard ids to spawn. Shard_count must be set for this to work
         """
         # Configurable stuff
         self.intents = int(intents)
