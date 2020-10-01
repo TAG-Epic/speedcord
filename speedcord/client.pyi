@@ -1,7 +1,6 @@
-from typing import List, Optional, Union
-from asyncio import AbstractEventLoop
+from typing import List, Optional, Union, Tuple, Callable, Any
+from asyncio import AbstractEventLoop, Event, Lock
 from logging import Logger
-from asyncio import Event, Lock
 
 from .shard import DefaultShard
 from .http import HttpClient
@@ -10,7 +9,6 @@ from .gateway import DefaultGatewayHandler
 
 
 class Client:
-    ...
     intents: int
     token: str
     shard_count: int
@@ -28,22 +26,22 @@ class Client:
     remaining_connections: Optional[int]
     connection_lock: Lock
 
-    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: Optional[List[int]] = None):
+    def __init__(self, intents: int, token: Optional[str] = ..., *, shard_count: Optional[int] = ..., shard_ids: Optional[List[int]] = ...) -> None:
         ...
-    def run(self):
+    def run(self) -> None:
         ...
-    async def get_gateway(self) -> (str, int, int, int):
-        ...
-
-    async def connect(self):
-        ...
-    async def start(self):
-        ...
-    async def close(self):
+    async def get_gateway(self) -> Tuple[str, int, int, int]:
         ...
 
-    def listen(self, event: Union[str, int]):
+    async def connect(self) -> None:
+        ...
+    async def start(self) -> None:
+        ...
+    async def close(self) -> None:
         ...
 
-    async def handle_dispatch(self, data: dict, shard: DefaultShard):
+    def listen(self, event: Union[str, int]) -> Callable[[Callable[[dict, DefaultShard], Any]], Any]:
+        ...
+
+    async def handle_dispatch(self, data: dict, shard: DefaultShard) -> None:
         ...
