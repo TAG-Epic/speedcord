@@ -22,7 +22,7 @@ def get_hash(file):
 
 dist_path = Path("dist/")
 
-dist_output = list(dist_path.glob("*.egg"))[0]
+dist_output = list(dist_path.glob("*"))[0]
 
 new_hash = get_hash(dist_output)
 if last_hash == new_hash:
