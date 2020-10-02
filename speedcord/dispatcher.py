@@ -5,6 +5,7 @@ Created by Epic at 9/1/20
 from asyncio import AbstractEventLoop
 import logging
 
+__all__ = ("OpcodeDispatcher", "EventDispatcher")
 
 class OpcodeDispatcher:
     def __init__(self, loop: AbstractEventLoop):
