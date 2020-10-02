@@ -28,6 +28,6 @@ for line in lines:
         new_lines.append(new_version)
     else:
         new_lines.append(line)
-
+new_lines.append("\n")
 with version_file.open("w") as f:
     f.writelines(new_lines)
