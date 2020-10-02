@@ -1,7 +1,7 @@
 """
 Created by Epic at 9/1/20
 """
-from asyncio import Event, get_event_loop, sleep, Lock
+from asyncio import Event, get_event_loop, Lock
 from logging import getLogger
 
 from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken

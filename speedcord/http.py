@@ -62,7 +62,9 @@ class HttpClient:
         self.default_headers = {
             "X-RateLimit-Precision": "millisecond",
             "Authorization": f"Bot {self.token}",
-            "User-Agent": f"DiscordBot (https://github.com/TAG-Epic/speedcord {speedcord_version}) Python/{python_version[0]}.{python_version[1]} aiohttp/{aiohttp_version}"
+            "User-Agent": f"DiscordBot (https://github.com/TAG-Epic/speedcord {speedcord_version}) "
+                          f"Python/{python_version[0]}.{python_version[1]} "
+                          f"aiohttp/{aiohttp_version}"
         }
 
         self.retry_attempts = 3
@@ -133,7 +135,7 @@ class HttpClient:
                         self.logger.warning(f"Global ratelimit hit! Retrying in {retry_after}s")
                     else:
                         self.logger.warning(
-                            f"A ratelimit was hit! This should not happen! Bucket: {bucket}. Retrying in {retry_after}s")
+                            f"A ratelimit was hit (429)! Bucket: {bucket}. Retrying in {retry_after}s")
 
                     await asyncio.sleep(retry_after)
                     continue
