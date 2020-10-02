@@ -12,13 +12,13 @@ class OpcodeDispatcher:
 
     event_handlers: Dict[int, Callable[[dict, DefaultShard], Any]]
 
-    def __init__(self, loop: AbstractEventLoop) -> None:
+    def __init__(self, loop: AbstractEventLoop):
         ...
 
-    def dispatch(self, opcode: int, *args: Any, **kwargs: Any) -> None:
+    def dispatch(self, opcode: int, *args: Any, **kwargs: Any):
         ...
 
-    def register(self, opcode: int, func: Callable[[dict, DefaultShard], Any]) -> None:
+    def register(self, opcode: int, func: Callable[[dict, DefaultShard], Any]):
         ...
 
 
@@ -28,11 +28,11 @@ class EventDispatcher:
 
     event_handlers: Dict[str, Callable[[dict, DefaultShard], Any]]
 
-    def __init__(self, loop: AbstractEventLoop) -> None:
+    def __init__(self, loop: AbstractEventLoop):
         ...
 
-    def dispatch(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+    def dispatch(self, event_name: str, *args: Any, **kwargs: Any):
         ...
 
-    def register(self, event_name: str, func: Callable[[dict, DefaultShard], Any]) -> None:
+    def register(self, event_name: str, func: Callable[[dict, DefaultShard], Any]):
         ...

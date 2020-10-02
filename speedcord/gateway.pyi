@@ -8,8 +8,8 @@ class DefaultGatewayHandler:
     client: Client
     logger: Logger
 
-    def __init__(self, client: Client) -> None:
+    def __init__(self, client: Client):
         ...
 
-    async def on_receive(self, data: dict, shard: DefaultShard) -> None:
+    async def on_receive(self, data: dict, shard: DefaultShard):
         ...

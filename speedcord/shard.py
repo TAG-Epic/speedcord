@@ -3,7 +3,7 @@ Created by Epic at 9/5/20
 """
 
 from asyncio import Event, Lock, AbstractEventLoop, sleep
-from aiohttp import ClientWebSocketResponse, WSMessage, WSMsgType
+from aiohttp import WSMessage, WSMsgType
 import logging
 from sys import platform
 from ujson import loads, dumps
@@ -15,7 +15,7 @@ class DefaultShard:
         self.client = client
         self.loop = loop
 
-        self.ws: ClientWebSocketResponse = None
+        self.ws = None
         self.gateway_url = None
         self.ws_ratelimiting_lock = Lock(loop=self.loop)
         self.logger = logging.getLogger(f"speedcord.shard.{self.id}")

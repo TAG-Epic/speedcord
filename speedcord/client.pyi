@@ -26,22 +26,22 @@ class Client:
     remaining_connections: Optional[int]
     connection_lock: Lock
 
-    def __init__(self, intents: int, token: Optional[str] = ..., *, shard_count: Optional[int] = ..., shard_ids: Optional[List[int]] = ...) -> None:
+    def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None, shard_ids: Optional[List[int]] = None):
         ...
-    def run(self) -> None:
+    def run(self):
         ...
     async def get_gateway(self) -> Tuple[str, int, int, int]:
         ...
 
-    async def connect(self) -> None:
+    async def connect(self):
         ...
-    async def start(self) -> None:
+    async def start(self):
         ...
-    async def close(self) -> None:
+    async def close(self):
         ...
 
     def listen(self, event: Union[str, int]) -> Callable[[Callable[[dict, DefaultShard], Any]], Any]:
         ...
 
-    async def handle_dispatch(self, data: dict, shard: DefaultShard) -> None:
+    async def handle_dispatch(self, data: dict, shard: DefaultShard):
         ...

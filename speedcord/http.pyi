@@ -10,10 +10,10 @@ from aiohttp import ClientWebSocketResponse, ClientResponse, ClientSession
 class Route:
     method: str
     path: str
-    channel_id: int
+    channel_id: Optional[int]
     guild_id: Optional[int]
 
-    def __init__(self, method: str, route: str, **parameters: Any) -> None:
+    def __init__(self, method: str, route: str, **parameters: Any):
         ...
 
     @property
@@ -25,16 +25,16 @@ class LockManager:
     lock: Lock
     unlock: bool
 
-    def __init__(self, lock: Lock) -> None:
+    def __init__(self, lock: Lock):
         ...
 
     def __enter__(self) -> 'LockManager':
         ...
 
-    def defer(self) -> None:
+    def defer(self):
         ...
 
-    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]) -> None:
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]):
         ...
 
 
@@ -49,7 +49,7 @@ class HttpClient:
     default_headers: Dict[str, str]
     retry_attempts: int
 
-    def __init__(self, token: str, *, baseuri: str = ..., loop: AbstractEventLoop = ...) -> None:
+    def __init__(self, token: str, *, baseuri: str = None, loop: AbstractEventLoop = None):
         ...
 
     async def create_ws(self, url: str, *, compression: int) -> ClientWebSocketResponse:
@@ -58,5 +58,5 @@ class HttpClient:
     async def request(self, route: Route, **kwargs: Any) -> ClientResponse:
         ...
 
-    async def close(self) -> None:
+    async def close(self):
         ...
