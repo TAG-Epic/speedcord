@@ -1,0 +1,1 @@
+recursive-include speedcord/ *.pyi
