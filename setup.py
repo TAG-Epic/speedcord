@@ -10,7 +10,7 @@ with open('speedcord/values.py') as f:
 setup(
     name='speedcord',
     version=version,
-    packages=find_packages(["README.md", "setup.py", "speedcord/*"]),
+    packages=find_packages(include=["README.md", "setup.py", "speedcord/*"]),
     url='https://github.com/tag-epic/speedcord',
     license='MIT',
     author='Epic',
