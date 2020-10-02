@@ -7,6 +7,7 @@ from aiohttp import ClientWebSocketResponse, WSMessage, WSMsgType
 import logging
 from sys import platform
 from ujson import loads, dumps
+from time import time
 
 
 class DefaultShard:
@@ -26,6 +27,11 @@ class DefaultShard:
         self.failed_heartbeats = 0
         self.session_id = None
         self.last_event_id = None  # This gets modified by gateway.py
+        self.gateway_send_lock = Lock(loop=self.loop)
+        self.gateway_send_limit = 120
+        self.gateway_send_per = 60
+        self.gateway_send_left = self.gateway_send_limit
+        self.gateway_send_reset = time() + self.gateway_send_per
 
         # Default events
         self.client.opcode_dispatcher.register(10, self.handle_hello)
@@ -72,11 +78,17 @@ class DefaultShard:
                 self.logger.warning("Unknown message type: " + str(type(message)))
 
     async def send(self, data: dict):
-        await self.ws_ratelimiting_lock.acquire()
-        self.logger.debug("Data sent: " + str(data))
-        await self.ws.send_json(data, dumps=dumps)
-        await sleep(.5)
-        self.ws_ratelimiting_lock.release()
+        async with self.ws_ratelimiting_lock:
+            current_time = time()
+            if current_time >= self.gateway_send_reset:
+                self.gateway_send_reset = current_time + self.gateway_send_per
+                self.gateway_send_left = self.gateway_send_limit
+            if self.gateway_send_left == 0:
+                sleep_for = self.gateway_send_reset - current_time
+                self.logger.debug(f"Gateway ratelimited! Sleeping for {sleep_for}s")
+                await sleep(self.gateway_send_reset - current_time)
+            self.logger.debug("Data sent: " + str(data))
+            await self.ws.send_json(data, dumps=dumps)
 
     async def identify(self):
         await self.send({
