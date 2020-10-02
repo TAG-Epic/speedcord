@@ -7,6 +7,7 @@ import logging
 
 __all__ = ("OpcodeDispatcher", "EventDispatcher")
 
+
 class OpcodeDispatcher:
     def __init__(self, loop: AbstractEventLoop):
         self.logger = logging.getLogger("speedcord.dispatcher")
