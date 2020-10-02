@@ -10,6 +10,7 @@ from ujson import loads, dumps
 
 
 class DefaultShard:
+    """Define default shard"""
     def __init__(self, shard_id, client, loop: AbstractEventLoop):
         self.id = shard_id
         self.client = client
@@ -35,6 +36,7 @@ class DefaultShard:
         self.client.event_dispatcher.register("READY", self.handle_ready)
 
     async def connect(self, gateway_url):
+        """Connect to the gateway"""
         if self.ws is not None:
             if not self.ws.closed:
                 await self.ws.close()
@@ -57,10 +59,12 @@ class DefaultShard:
             await self.resume()
 
     async def close(self):
+        """Close the web socket"""
         if self.ws is not None and not self.ws.closed:
             await self.ws.close()
 
     async def read_loop(self):
+        """Provide message for processes"""
         message: WSMessage  # Fix typehinting
         async for message in self.ws:
             if message.type == WSMsgType.TEXT:
@@ -72,6 +76,7 @@ class DefaultShard:
                 self.logger.warning("Unknown message type: " + str(type(message)))
 
     async def send(self, data: dict):
+        """Sends the data in json format"""
         await self.ws_ratelimiting_lock.acquire()
         self.logger.debug("Data sent: " + str(data))
         await self.ws.send_json(data, dumps=dumps)
@@ -79,6 +84,7 @@ class DefaultShard:
         self.ws_ratelimiting_lock.release()
 
     async def identify(self):
+        """Identify the client"""
         await self.send({
             "op": 2,
             "d": {
@@ -94,6 +100,7 @@ class DefaultShard:
         })
 
     async def resume(self):
+        """Resume operation"""
         await self.send({
             "op": 6,
             "d": {
@@ -104,6 +111,7 @@ class DefaultShard:
         })
 
     async def heartbeat_loop(self):
+        """Provide heartbeat loop mechanism if heartbeat_ack is True"""
         while self.connected.is_set():
             if not self.received_heartbeat_ack:
                 self.failed_heartbeats += 1
@@ -125,6 +133,7 @@ class DefaultShard:
             await sleep(self.heartbeat_interval)
 
     async def handle_hello(self, data, shard):
+        """Handle heartbeat task"""
         if shard.id != self.id:
             return
         self.received_heartbeat_ack = True
@@ -133,17 +142,20 @@ class DefaultShard:
         self.logger.debug("Started heartbeat loop")
 
     async def handle_heartbeat_ack(self, data, shard):
+        """Handle heartbeat_ack"""
         if shard.id != self.id:
             return
         self.received_heartbeat_ack = True
         self.failed_heartbeats = 0
 
     async def handle_ready(self, data, shard):
+        """Handle session_id"""
         if shard.id != self.id:
             return
         self.session_id = data["session_id"]
 
     async def handle_invalid_session(self, data, shard):
+        """Handle invalid sessions"""
         if shard.id != self.id:
             return
         if not data.get("d", False):

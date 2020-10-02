@@ -16,6 +16,7 @@ __all__ = ("Route", "HttpClient")
 
 
 class Route:
+    """Defines route"""
     def __init__(self, method, route, **parameters):
         self.method = method
         self.path = route.format(**parameters)
@@ -26,26 +27,32 @@ class Route:
 
     @property
     def bucket(self):
+        """Returns a str of channel_id, guild_id and the path"""
         return f"{self.channel_id}:{self.guild_id}:{self.path}"
 
 
 class LockManager:
+    """Provide lock mechanism"""
     def __init__(self, lock: asyncio.Lock):
         self.lock = lock
         self.unlock = True
 
     def __enter__(self):
+        """Press enter"""
         return self
 
     def defer(self):
+        """Reset unlock"""
         self.unlock = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Release the lock and exits"""
         if self.unlock:
             self.lock.release()
 
 
 class HttpClient:
+    """Define the http client"""
     def __init__(self, token, *, baseuri="https://discord.com/api/v7", loop=asyncio.get_event_loop()):
         self.baseuri = baseuri
         self.token = token
@@ -70,6 +77,7 @@ class HttpClient:
         self.retry_attempts = 3
 
     async def create_ws(self, url, *, compression) -> ClientWebSocketResponse:
+        """create web socket"""
         options = {
             "max_msg_size": 0,
             "timeout": 60,
@@ -82,6 +90,7 @@ class HttpClient:
         return await self.session.ws_connect(url, **options)
 
     async def request(self, route: Route, **kwargs):
+        """Request the route"""
         bucket = route.bucket
 
         for i in range(self.retry_attempts):
