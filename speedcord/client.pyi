@@ -1,7 +1,6 @@
-from typing import List, Optional, Union
-from asyncio import AbstractEventLoop
+from typing import List, Optional, Union, Tuple, Callable, Any
+from asyncio import AbstractEventLoop, Event, Lock
 from logging import Logger
-from asyncio import Event, Lock
 
 from .shard import DefaultShard
 from .http import HttpClient
@@ -10,7 +9,6 @@ from .gateway import DefaultGatewayHandler
 
 
 class Client:
-    ...
     intents: int
     token: str
     shard_count: int
@@ -32,7 +30,7 @@ class Client:
         ...
     def run(self):
         ...
-    async def get_gateway(self) -> (str, int, int, int):
+    async def get_gateway(self) -> Tuple[str, int, int, int]:
         ...
 
     async def connect(self):
@@ -42,7 +40,7 @@ class Client:
     async def close(self):
         ...
 
-    def listen(self, event: Union[str, int]):
+    def listen(self, event: Union[str, int]) -> Callable[[Callable[[dict, DefaultShard], Any]], Any]:
         ...
 
     async def handle_dispatch(self, data: dict, shard: DefaultShard):

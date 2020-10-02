@@ -35,8 +35,10 @@ class MessageContext:
     application: Optional[Dict[str, Any]]
     message_reference: Optional[Dict[str, int]]
     flags: Optional[int]
-    ...
 
-    async def send(self, *, content: str = None, nonce: Union[int, str] = None, tts: bool = None,
-                   embed: Dict[str, Any] = None, allowed_mentions: Dict[str, Any] = None):
+    client: Client
+    data: Dict[str, Any]
+
+    async def send(self, *, content: str = ..., nonce: Union[int, str] = ..., tts: bool = ...,
+                   embed: Dict[str, Any] = ..., allowed_mentions: Dict[str, Any] = ...):
         ...

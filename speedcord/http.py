@@ -16,7 +16,7 @@ __all__ = ("Route", "HttpClient")
 
 
 class Route:
-    def __init__(self, method: str, route: str, **parameters):
+    def __init__(self, method, route, **parameters):
         self.method = method
         self.path = route.format(**parameters)
 
