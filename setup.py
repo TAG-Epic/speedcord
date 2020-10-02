@@ -16,8 +16,7 @@ setup(
     author='Epic',
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    install_requires=["aiohttp", "setuptools-git", "ujson"],
-    package_data={"": ["*.pyi"]},
+    install_requires=["aiohttp", "ujson"],
     description='A simple lightweight discord library',
     python_requires='>=3.7',
 )
