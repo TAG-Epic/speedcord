@@ -21,3 +21,6 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 speedcord examples --max-line-length=120
+    - name: Custom linting
+      run: |
+        python .github/tools/stylecheck.py
