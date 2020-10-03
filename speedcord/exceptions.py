@@ -52,3 +52,8 @@ class GatewayException(Exception):
 class GatewayClosed(GatewayException):
     def __init__(self):
         super().__init__("You can't do this as the gateway is closed.")
+
+
+class GatewayUnavailable(GatewayException):
+    def __init__(self):
+        super().__init__("Can't reach the discord gateway. Have you tried checking your internet?")

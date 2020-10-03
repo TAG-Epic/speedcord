@@ -53,3 +53,7 @@ class GatewayException(Exception):
 class GatewayClosed(GatewayException):
     def __init__(self):
         ...
+
+class GatewayUnavailable(GatewayException):
+    def __init__(self):
+        ...

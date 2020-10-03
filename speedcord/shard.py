@@ -3,11 +3,13 @@ Created by Epic at 9/5/20
 """
 
 from asyncio import Event, Lock, AbstractEventLoop, sleep
+from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSMessage, WSMsgType
 import logging
 from sys import platform
 from ujson import loads, dumps
 from time import time
+from .exceptions import GatewayUnavailable
 
 
 class DefaultShard:
@@ -47,7 +49,11 @@ class DefaultShard:
                 await self.ws.close()
             self.ws = None
         self.gateway_url = gateway_url
-        self.ws = await self.client.http.create_ws(gateway_url, compression=0)
+        try:
+            self.ws = await self.client.http.create_ws(gateway_url, compression=0)
+        except ClientConnectorError:
+            await self.client.close()
+            raise GatewayUnavailable() from None
         self.loop.create_task(self.read_loop())
         self.connected.set()
         if self.session_id is None:
