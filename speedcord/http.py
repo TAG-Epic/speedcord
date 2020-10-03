@@ -18,10 +18,12 @@ __all__ = ("Route", "HttpClient")
 class Route:
     def __init__(self, method, route, **parameters):
         """
-        Used to send requests via speedcord.Client.
-        :param method: Standard HTTPS method - GET, POST, DELETE, PUT
-        :param route: Discord API route. More info at https://discord.com/developers/docs/reference
-        :param parameters: Parameters to send with the request. Refer to docs for info.
+        Describes an API route. Used by HttpClient to send requests.
+        For a list of routes and their parameters, refer to https://discord.com/developers/docs/reference.
+        :param method: Standard HTTPS method.
+        :param route: Discord API route.
+        :param parameters: Parameters to send with the request.
+        :param channel_id: The id of the channel to use in the ratelimit bucket.
         """
         self.method = method
         self.path = route.format(**parameters)
@@ -32,6 +34,9 @@ class Route:
 
     @property
     def bucket(self):
+        """
+        The Route's bucket identifier.
+        """
         return f"{self.channel_id}:{self.guild_id}:{self.path}"
 
 
@@ -59,11 +64,10 @@ class LockManager:
 class HttpClient:
     def __init__(self, token, *, baseuri="https://discord.com/api/v7", loop=asyncio.get_event_loop()):
         """
-        Created by speedcord.Client when started. Runs requests sent to it by creating Route
-        objects and also handles rate limits with LockManager.
-        :param token: The Discord Bot token.
-        :param baseuri: Discord's API uri. Generally should use the default.
-        :param loop: an asyncio.AbstractEventLoop. get_event_loop() should be fine most of the time.
+        An http client which handles discord ratelimits.
+        :param token: The Discord Bot token. To create a bot - https://discordpy.readthedocs.io/en/latest/discord.html
+        :param baseuri: Discord's API uri.
+        :param loop: an asyncio.AbstractEventLoop to use for callbacks.
         """
         self.baseuri = baseuri
         self.token = token
@@ -89,7 +93,7 @@ class HttpClient:
 
     async def create_ws(self, url, *, compression) -> ClientWebSocketResponse:
         """
-        Opens a websocket to the specified url. Used when creating shards.
+        Opens a websocket to the specified url.
         :param url: The url that the websocket will conenct to.
         :param compression: Whether to enable compression. Refer to https://discord.com/developers/docs/topics/gateway
         """

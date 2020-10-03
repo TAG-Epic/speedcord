@@ -15,9 +15,10 @@ class DefaultShard:
         """
         Handles all Discord Shard related events. For more information on what sharding is and how it works:
         https://discord.com/developers/docs/topics/gateway#sharding.
-        :param shard_id: The id for the shard. Shard ids have the format [<shard_index>, <number_of_shards>].
+        This simply represents a Discord Shard. The actual handling of events happens via the client's handlers.
+        :param shard_id: The id for the shard.
         :param client: A speedcord.Client object which will manage the shards.
-        :param loop: an asyncio.AbstractEventLoop. get_event_loop() should be fine most of the time.
+        :param loop: an AbstractEventLoop which is used to create callbacks.
         """
         self.id = shard_id
         self.client = client
@@ -51,7 +52,7 @@ class DefaultShard:
     async def connect(self, gateway_url):
         """
         Connects to the gateway. Usually done by the client.
-        :param gateway_url: The gateway url, you can usually GET it by calling /gateway/bot.
+        :param gateway_url: The gateway url.
         """
         if self.ws is not None:
             if not self.ws.closed:
@@ -80,7 +81,7 @@ class DefaultShard:
 
     async def read_loop(self):
         """
-        Reads all messages and dispatches them to a gateway handler, which is defined in the client.
+        Receives data from a gateway and sends it to a handler.
         """
         message: WSMessage  # Fix typehinting
         async for message in self.ws:
