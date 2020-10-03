@@ -17,7 +17,7 @@ class Client:
     shards: List[DefaultShard]
     loop: AbstractEventLoop
     logger: Logger
-    http: HttpClient
+    http: Optional[HttpClient]
     opcode_dispatcher: OpcodeDispatcher
     event_dispatcher: EventDispatcher
     gateway_handler: DefaultGatewayHandler
