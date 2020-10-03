@@ -40,7 +40,8 @@ def process_file(file_contents, file_name: str):
         scan(last_line, current_line, next_line, line_id, file_name)
 
 
-for file in code_path.glob("*.py"):
+for file in code_path.glob("*/*.py"):
+    print("Scanning", file)
     with file.open() as f:
         process_file(f.read(), str(file))
 exit(fails)
