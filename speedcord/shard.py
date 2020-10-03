@@ -18,15 +18,16 @@ class DefaultShard:
 
         self.ws = None
         self.gateway_url = None
-        self.ws_ratelimiting_lock = Lock(loop=self.loop)
         self.logger = logging.getLogger(f"speedcord.shard.{self.id}")
         self.connected = Event(loop=self.loop)  # Some bots might wanna know which shards is online at all times
+
         self.received_heartbeat_ack = True
         self.heartbeat_interval = None
         self.heartbeat_count = None
         self.failed_heartbeats = 0
         self.session_id = None
         self.last_event_id = None  # This gets modified by gateway.py
+
         self.gateway_send_lock = Lock(loop=self.loop)
         self.gateway_send_limit = 120
         self.gateway_send_per = 60

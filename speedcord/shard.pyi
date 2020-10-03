@@ -12,15 +12,21 @@ class DefaultShard:
     loop: AbstractEventLoop
     ws: Optional[ClientWebSocketResponse]
     gateway_url: Optional[str]
-    ws_ratelimiting_lock: Lock
     logger: Logger
     connected: Event
+
     received_heartbeat_ack: bool
     heartbeat_interval: Optional[int]
     heartbeat_count: Optional[int]
     failed_heartbeats: int
     session_id: Optional[str]
     last_event_id: Optional[int]
+
+    gateway_send_lock: Lock
+    gateway_send_limit: int
+    gateway_send_per: int
+    gateway_send_left: int
+    gateway_send_reset: float
 
     def __init__(self, shard_id: int, client: Client, loop: AbstractEventLoop):
         ...
