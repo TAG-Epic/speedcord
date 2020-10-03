@@ -66,6 +66,7 @@ class DefaultShard:
     async def close(self):
         if self.ws is not None and not self.ws.closed:
             await self.ws.close()
+        self.connected.clear()
 
     async def read_loop(self):
         message: WSMessage  # Fix typehinting
@@ -124,6 +125,7 @@ class DefaultShard:
                     "WebSocket did not respond to a heartbeat! Failed attempts: " + str(self.failed_heartbeats))
                 if self.failed_heartbeats > 2:
                     self.logger.warning("Gateway stopped responding, reconnecting!")
+                    await self.close()
                     await self.connect(self.gateway_url)
                     return
             self.received_heartbeat_ack = False
@@ -162,4 +164,5 @@ class DefaultShard:
         if not data.get("d", False):
             # Session is no longer valid, create a new session
             self.session_id = None
+        await self.close()
         await self.connect(self.gateway_url)
