@@ -79,7 +79,7 @@ class DefaultShard:
                 self.logger.warning("Unknown message type: " + str(type(message)))
 
     async def send(self, data: dict):
-        async with self.ws_ratelimiting_lock:
+        async with self.gateway_send_lock:
             current_time = time()
             if current_time >= self.gateway_send_reset:
                 self.gateway_send_reset = current_time + self.gateway_send_per
