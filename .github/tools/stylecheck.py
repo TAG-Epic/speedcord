@@ -40,8 +40,16 @@ def process_file(file_contents, file_name: str):
 		scan(last_line, current_line, next_line, line_id, file_name)
 
 
-for file in code_path.glob("*/*.py"):
-	print("Scanning", file)
-	with file.open() as f:
-		process_file(f.read(), str(file))
+def scan_folder(folder: Path):
+	for fileorfolder in folder.glob("*"):
+		if fileorfolder.is_dir():
+			scan_folder(fileorfolder)
+			continue
+		if not str(fileorfolder).endswith(".py"):
+			continue
+		with fileorfolder.open() as f:
+			process_file(f.read(), str(fileorfolder))
+
+
+scan_folder(code_path)
 exit(fails)
