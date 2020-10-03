@@ -5,7 +5,7 @@ Created by Epic at 9/5/20
 from asyncio import Event, Lock, AbstractEventLoop, sleep
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSMessage, WSMsgType
-import logging
+from logging import getLogger
 from sys import platform
 from ujson import loads, dumps
 from time import time
@@ -20,7 +20,7 @@ class DefaultShard:
 
         self.ws = None
         self.gateway_url = None
-        self.logger = logging.getLogger(f"speedcord.shard.{self.id}")
+        self.logger = getLogger(f"speedcord.shard.{self.id}")
         self.connected = Event(loop=self.loop)  # Some bots might wanna know which shards is online at all times
 
         self.received_heartbeat_ack = True
