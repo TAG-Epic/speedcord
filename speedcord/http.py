@@ -18,10 +18,10 @@ __all__ = ("Route", "HttpClient")
 class Route:
     def __init__(self, method, route, **parameters):
         """
-        Used to send requests via speedcord.Client. 
+        Used to send requests via speedcord.Client.
         :param method: Standard HTTPS method - GET, POST, DELETE, PUT
         :param route: Discord API route. More info at https://discord.com/developers/docs/reference
-        :param parameters: Parameters to send with the request. Refer to docs for info. 
+        :param parameters: Parameters to send with the request. Refer to docs for info.
         """
         self.method = method
         self.path = route.format(**parameters)
@@ -39,7 +39,7 @@ class LockManager:
     def __init__(self, lock: asyncio.Lock):
         """
         Used by HttpClient to handle rate limits. Locked when a Bucket's rate limit has been
-        hit, which prevents additional requests from being executed. 
+        hit, which prevents additional requests from being executed.
         :param lock: An asyncio.Lock object. Usually something like asyncio.Lock(loop=some_loop)
         """
         self.lock = lock
@@ -59,11 +59,11 @@ class LockManager:
 class HttpClient:
     def __init__(self, token, *, baseuri="https://discord.com/api/v7", loop=asyncio.get_event_loop()):
         """
-        Created by speedcord.Client when started. Runs requests sent to it by creating Route 
-        objects and also handles rate limits with LockManager. 
+        Created by speedcord.Client when started. Runs requests sent to it by creating Route
+        objects and also handles rate limits with LockManager.
         :param token: The Discord Bot token.
-        :param baseuri: Discord's API uri. Generally should use the default. 
-        :param loop: an asyncio.AbstractEventLoop. get_event_loop() should be fine most of the time. 
+        :param baseuri: Discord's API uri. Generally should use the default.
+        :param loop: an asyncio.AbstractEventLoop. get_event_loop() should be fine most of the time.
         """
         self.baseuri = baseuri
         self.token = token
@@ -89,9 +89,9 @@ class HttpClient:
 
     async def create_ws(self, url, *, compression) -> ClientWebSocketResponse:
         """
-        Opens a websocket to the specified url. Used when creating shards. 
-        :param url: The url that the websocket will conenct to. 
-        :param compression: Whether to enable compression. Currently is not used. Refer to https://discord.com/developers/docs/topics/gateway#encoding-and-compression. 
+        Opens a websocket to the specified url. Used when creating shards.
+        :param url: The url that the websocket will conenct to.
+        :param compression: Whether to enable compression. Refer to https://discord.com/developers/docs/topics/gateway
         """
         options = {
             "max_msg_size": 0,
@@ -107,16 +107,16 @@ class HttpClient:
     async def request(self, route: Route, **kwargs):
         """
         Sends a request to the Discord API. Handles rate limits by utilizing LockManager and
-        the Discord API Bucket system - https://discord.com/developers/docs/topics/gateway#encoding-and-compression. 
+        the Discord API Bucket system - https://discord.com/developers/docs/topics/gateway#encoding-and-compression.
 
         When the client wants to send a new request, this method attempts to acquire a ratelimit
         lock. When it eventually does, it sends a request and checks to see if the ratelimit has
-        been exceeded. If so, that Bucket's LockManager is locked so other requests cannot 
-        acquire a lock. The Discord Bucket system returns a `delta` value which specifies how 
+        been exceeded. If so, that Bucket's LockManager is locked so other requests cannot
+        acquire a lock. The Discord Bucket system returns a `delta` value which specifies how
         long it will take before another request can be sent and the LockManager for that Bucket
-        can be unlocked. 
-        :param route: The Discord API route to send a request to. 
-        :param kwargs: The parameters to send with the request. 
+        can be unlocked.
+        :param route: The Discord API route to send a request to.
+        :param kwargs: The parameters to send with the request.
         """
         bucket = route.bucket
 
