@@ -1,5 +1,12 @@
 """
 Created by Epic at 9/5/20
+
+Instructions on using this example: 
+    - Create a discord server, app and bot (you can just follow the discord api instructions). 
+    - Make sure the bot has message read and write permissions. 
+    - Copy the token from the bot and set it as an environment variable and invite it to a server (https://discordpy.readthedocs.io/en/latest/discord.html). 
+    - Run this script. 
+    - Write !test in the chat. 
 """
 
 import speedcord
