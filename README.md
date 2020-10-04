@@ -29,7 +29,7 @@ There are currently few examples, you are free to contribute new examples
  
 ## Contributing
 
-Contributions are more than welcome as long as they follow our [contribution guidelines](https://github.com/TAG-Epic/speedcord/blob/master/CONTRIBUTING.md), additonally make sure you follow our [code of conduct](https://github.com/TAG-Epic/speedcord/blob/master/CODE_OF_CONDUCT.md
+Contributions are more than welcome as long as they follow our [contribution guidelines](https://github.com/TAG-Epic/speedcord/blob/master/CONTRIBUTING.md), additonally make sure you follow our [code of conduct](https://github.com/TAG-Epic/speedcord/blob/master/CODE_OF_CONDUCT.md)
 
 ## License
 
