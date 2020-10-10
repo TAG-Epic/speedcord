@@ -14,6 +14,14 @@ from .exceptions import GatewayUnavailable
 
 class DefaultShard:
     def __init__(self, shard_id, client, loop: AbstractEventLoop):
+        """
+        Handles all Discord Shard related events. For more information on what sharding is and how it works:
+        https://discord.com/developers/docs/topics/gateway#sharding.
+        This simply represents a Discord Shard. The actual handling of events happens via the client's handlers.
+        :param shard_id: The id for the shard.
+        :param client: A speedcord.Client object which will manage the shards.
+        :param loop: an AbstractEventLoop which is used to create callbacks.
+        """
         self.id = shard_id
         self.client = client
         self.loop = loop
@@ -44,6 +52,10 @@ class DefaultShard:
         self.client.event_dispatcher.register("READY", self.handle_ready)
 
     async def connect(self, gateway_url):
+        """
+        Connects to the gateway. Usually done by the client.
+        :param gateway_url: The gateway url.
+        """
         if self.ws is not None:
             if not self.ws.closed:
                 await self.ws.close()
@@ -75,6 +87,9 @@ class DefaultShard:
         self.connected.clear()
 
     async def read_loop(self):
+        """
+        Receives data from a gateway and sends it to a handler.
+        """
         message: WSMessage  # Fix typehinting
         async for message in self.ws:
             if message.type == WSMsgType.TEXT:
@@ -86,6 +101,9 @@ class DefaultShard:
                 self.logger.warning("Unknown message type: " + str(type(message)))
 
     async def send(self, data: dict):
+        """
+        Attempts to send a message via the gateway. Checks for the gateway ratelimit before doing so.
+        """
         async with self.gateway_send_lock:
             current_time = time()
             if current_time >= self.gateway_send_reset:
@@ -99,6 +117,10 @@ class DefaultShard:
             await self.ws.send_json(data, dumps=dumps)
 
     async def identify(self):
+        """
+        Sends an identify message to the gateway, which is the initial handshake.
+        https://discord.com/developers/docs/topics/gateway#identify
+        """
         await self.send({
             "op": 2,
             "d": {
@@ -114,6 +136,11 @@ class DefaultShard:
         })
 
     async def resume(self):
+        """
+        Sends a resume message to the gateway, which resumes any events stopped in
+        case of some sort of a disconnect.
+        https://discord.com/developers/docs/topics/gateway#resume
+        """
         await self.send({
             "op": 6,
             "d": {
@@ -124,6 +151,10 @@ class DefaultShard:
         })
 
     async def heartbeat_loop(self):
+        """
+        Sends a heartbeat_loop message to the gateway - used to keep the connection alive.
+        https://discord.com/developers/docs/topics/gateway#heartbeat
+        """
         while self.connected.is_set():
             if not self.received_heartbeat_ack:
                 self.failed_heartbeats += 1

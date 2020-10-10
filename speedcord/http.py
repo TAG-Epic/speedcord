@@ -17,6 +17,14 @@ __all__ = ("Route", "HttpClient")
 
 class Route:
     def __init__(self, method, route, **parameters):
+        """
+        Describes an API route. Used by HttpClient to send requests.
+        For a list of routes and their parameters, refer to https://discord.com/developers/docs/reference.
+        :param method: Standard HTTPS method.
+        :param route: Discord API route.
+        :param parameters: Parameters to send with the request.
+        :param channel_id: The id of the channel to use in the ratelimit bucket.
+        """
         self.method = method
         self.path = route.format(**parameters)
 
@@ -26,11 +34,19 @@ class Route:
 
     @property
     def bucket(self):
+        """
+        The Route's bucket identifier.
+        """
         return f"{self.channel_id}:{self.guild_id}:{self.path}"
 
 
 class LockManager:
     def __init__(self, lock: asyncio.Lock):
+        """
+        Used by HttpClient to handle rate limits. Locked when a Bucket's rate limit has been
+        hit, which prevents additional requests from being executed.
+        :param lock: An asyncio.Lock object. Usually something like asyncio.Lock(loop=some_loop)
+        """
         self.lock = lock
         self.unlock = True
 
@@ -47,6 +63,12 @@ class LockManager:
 
 class HttpClient:
     def __init__(self, token, *, baseuri="https://discord.com/api/v7", loop=asyncio.get_event_loop()):
+        """
+        An http client which handles discord ratelimits.
+        :param token: The Discord Bot token. To create a bot - https://discordpy.readthedocs.io/en/latest/discord.html
+        :param baseuri: Discord's API uri.
+        :param loop: an asyncio.AbstractEventLoop to use for callbacks.
+        """
         self.baseuri = baseuri
         self.token = token
         self.loop = loop
@@ -70,6 +92,11 @@ class HttpClient:
         self.retry_attempts = 3
 
     async def create_ws(self, url, *, compression) -> ClientWebSocketResponse:
+        """
+        Opens a websocket to the specified url.
+        :param url: The url that the websocket will conenct to.
+        :param compression: Whether to enable compression. Refer to https://discord.com/developers/docs/topics/gateway
+        """
         options = {
             "max_msg_size": 0,
             "timeout": 60,
@@ -82,6 +109,19 @@ class HttpClient:
         return await self.session.ws_connect(url, **options)
 
     async def request(self, route: Route, **kwargs):
+        """
+        Sends a request to the Discord API. Handles rate limits by utilizing LockManager and
+        the Discord API Bucket system - https://discord.com/developers/docs/topics/gateway#encoding-and-compression.
+
+        When the client wants to send a new request, this method attempts to acquire a ratelimit
+        lock. When it eventually does, it sends a request and checks to see if the ratelimit has
+        been exceeded. If so, that Bucket's LockManager is locked so other requests cannot
+        acquire a lock. The Discord Bucket system returns a `delta` value which specifies how
+        long it will take before another request can be sent and the LockManager for that Bucket
+        can be unlocked.
+        :param route: The Discord API route to send a request to.
+        :param kwargs: The parameters to send with the request.
+        """
         bucket = route.bucket
 
         for i in range(self.retry_attempts):
