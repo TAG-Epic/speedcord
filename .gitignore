@@ -5,3 +5,6 @@ build/
 dist/
 *.egg-info
 .idea
+/docs/_build
+/docs/_static/
+/docs/_templates
