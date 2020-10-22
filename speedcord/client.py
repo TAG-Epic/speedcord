@@ -1,34 +1,51 @@
 """
 Created by Epic at 9/1/20
 """
-from asyncio import Event, get_event_loop, Lock
+from asyncio import Event, Lock, get_event_loop
 from logging import getLogger
+from typing import Union
 
-from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
-from .http import HttpClient, Route
-from .dispatcher import OpcodeDispatcher, EventDispatcher
+from .dispatcher import EventDispatcher, OpcodeDispatcher
+from .exceptions import ConnectionsExceeded, InvalidToken, Unauthorized
 from .gateway import DefaultGatewayHandler
+from .http import HttpClient, Route
 from .shard import DefaultShard
 
 __all__ = ("Client",)
 
 
 class Client:
-    def __init__(self, intents, token=None, *, shard_count=None, shard_ids=None):
-        """
-        The client to interact with the discord API
-        :param intents: the intents to use
-        :param token: the discord bot token to use
-        :param shard_count: how many shards to use
-        :param shard_ids: A list of shard ids to spawn. Shard_count must be set for this to work
-        """
+    """
+    The client used to interact with the discord API.
+
+    Parameters
+    ----------
+    intents: int
+        The intents to use.
+    token: Optional[str]
+        Discord bot token to use.
+    shard_count: Optional[int]
+        How many shards the client should use.
+    shard_ids: Optional[List[int]]
+        A list of shard IDs to spawn. ``shard_count`` must be set for this
+        to work.
+
+    Raises
+    ------
+    TypeError
+        ``shard_ids`` was set without ``shard_count``.
+    """
+
+    def __init__(self, intents, token=None, *, shard_count=None,
+                 shard_ids=None):
         # Configurable stuff
         self.intents = int(intents)
         self.token = token
         self.shard_count = shard_count
         self.shard_ids = shard_ids
 
-        # Things used by the lib, usually doesn't need to get changed but can if you want to.
+        # Things used by the lib, usually doesn't need to get changed but
+        # can if you want to.
         self.shards = []
         self.loop = get_event_loop()
         self.logger = getLogger("speedcord")
@@ -50,7 +67,7 @@ class Client:
 
     def run(self):
         """
-        Starts the client
+        Starts the client.
         """
         try:
             self.loop.run_until_complete(self.start())
@@ -60,10 +77,18 @@ class Client:
     async def get_gateway(self):
         """
         Get details about the gateway
-        :return: wss url to connect to
-        :return: how many shards to use
-        :return: how many gateway connections left
-        :return: how many ms until the gateway connection limit resets
+
+        Returns
+        -------
+        Tuple[str, int, int, int]
+            A tuple consisting of the wss url to connect to, how many shards
+            to use, how many gateway connections left, how many milliseconds
+            until the gateway connection limit resets.
+
+        Raises
+        ------
+        Unauthorized
+            Authentication failed.
         """
         route = Route("GET", "/gateway/bot")
         try:
@@ -83,17 +108,24 @@ class Client:
         self.remaining_connections = remaining_connections
         self.logger.debug(f"{remaining_connections} gateway connections left!")
 
-        return gateway_url, shards, remaining_connections, connections_reset_after
+        return (gateway_url, shards, remaining_connections,
+                connections_reset_after)
 
     async def connect(self):
         """
-        Connects to discord and spawns shards. Start has to be called first!
+        Connects to discord and spawns shards. :meth:`start()` has to be called first!
+
+        Raises
+        ------
+        InvalidToken
+            Provided token is invalid.
         """
         if self.token is None:
             raise InvalidToken
 
         try:
-            gateway_url, shard_count, _, connections_reset_after = await self.get_gateway()
+            gateway_url, shard_count, _, connections_reset_after = await \
+                self.get_gateway()
         except Unauthorized:
             self.exit_event.clear()
             raise InvalidToken
@@ -112,7 +144,12 @@ class Client:
 
     async def start(self):
         """
-        Sets up the http client and connects to discord and spawns shards.
+        Sets up the HTTP client, connects to Discord, and spawns shards.
+
+        Raises
+        ------
+        InvalidToken
+            Provided token is invalid.
         """
         if self.token is None:
             raise InvalidToken
@@ -125,7 +162,7 @@ class Client:
 
     async def close(self):
         """
-        Closes the http client and disconnects all shards
+        Closes the HTTP client and disconnects all shards.
         """
         self.connected.clear()
         self.exit_event.set()
@@ -133,10 +170,19 @@ class Client:
         for shard in self.shards:
             await shard.close()
 
-    def listen(self, event):
+    def listen(self, event: Union[int, str]):
         """
-        Listen to a event or a opcode.
-        :param event: a opcode or event name to listen to
+        Listen to an event or opcode.
+
+        Parameters
+        ----------
+        event: Union[int, str]
+            An opcode or event name to listen to.
+            
+        Raises
+        ------
+        TypeError
+            Invalid event type was passed.
         """
 
         def get_func(func):
@@ -152,8 +198,13 @@ class Client:
     # Handle events
     async def handle_dispatch(self, data, shard):
         """
-        Dispatches a event to the event handler
-        :param data: the data to dispatch
-        :param shard: What shard was the event received on
+        Dispatches a event to the event handler.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            The data to dispatch.
+        shard: DefaultShard
+            Shard the event was received on.
         """
         self.event_dispatcher.dispatch(data["t"], data["d"], shard)
