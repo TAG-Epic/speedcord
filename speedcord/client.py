@@ -140,9 +140,9 @@ class Client:
         """
 
         def get_func(func):
-            if type(event) == int:
+            if isinstance(event, int):
                 self.opcode_dispatcher.register(event, func)
-            elif type(event) == str:
+            elif isinstance(event, str):
                 self.event_dispatcher.register(event, func)
             else:
                 raise TypeError("Invalid event type!")
