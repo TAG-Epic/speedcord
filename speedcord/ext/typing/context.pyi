@@ -39,6 +39,8 @@ class MessageContext:
     client: Client
     data: Dict[str, Any]
 
+    def __init__(self, client: Client, data: Dict[str, Any]):
+        ...
     async def send(self, *, content: str = ..., nonce: Union[int, str] = ..., tts: bool = ...,
                    embed: Dict[str, Any] = ..., allowed_mentions: Dict[str, Any] = ...):
         ...
