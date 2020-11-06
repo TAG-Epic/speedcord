@@ -21,6 +21,7 @@ class DefaultShard:
     failed_heartbeats: int
     session_id: Optional[str]
     last_event_id: Optional[int]
+    is_ready: Event
 
     gateway_send_lock: Lock
     gateway_send_limit: int

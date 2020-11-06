@@ -44,6 +44,8 @@ class DefaultShard:
         self.gateway_send_left = self.gateway_send_limit
         self.gateway_send_reset = time() + self.gateway_send_per
 
+        self.is_ready = Event(loop=self.loop)
+
         # Default events
         self.client.opcode_dispatcher.register(10, self.handle_hello)
         self.client.opcode_dispatcher.register(11, self.handle_heartbeat_ack)
@@ -85,6 +87,7 @@ class DefaultShard:
         if self.ws is not None and not self.ws.closed:
             await self.ws.close()
         self.connected.clear()
+        self.is_ready.clear()
 
     async def read_loop(self):
         """
@@ -155,7 +158,9 @@ class DefaultShard:
         Sends a heartbeat_loop message to the gateway - used to keep the connection alive.
         https://discord.com/developers/docs/topics/gateway#heartbeat
         """
-        while self.connected.is_set():
+        await self.is_ready.wait()
+        sess_id = self.session_id
+        while self.connected.is_set() and self.session_id == sess_id:
             if not self.received_heartbeat_ack:
                 self.failed_heartbeats += 1
                 self.logger.info(
@@ -194,6 +199,7 @@ class DefaultShard:
         if shard.id != self.id:
             return
         self.session_id = data["session_id"]
+        self.is_ready.set()
 
     async def handle_invalid_session(self, data, shard):
         if shard.id != self.id:
