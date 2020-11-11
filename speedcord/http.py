@@ -62,7 +62,7 @@ class LockManager:
 
 
 class HttpClient:
-    def __init__(self, token, *, baseuri="https://discord.com/api/v7", loop=asyncio.get_event_loop()):
+    def __init__(self, token, *, baseuri="https://discord.com/api/v8", loop=asyncio.get_event_loop()):
         """
         An http client which handles discord ratelimits.
         :param token: The Discord Bot token. To create a bot - https://discordpy.readthedocs.io/en/latest/discord.html
