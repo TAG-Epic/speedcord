@@ -32,7 +32,7 @@ class DefaultShard:
     def __init__(self, shard_id: int, client: Client, loop: AbstractEventLoop):
         ...
 
-    async def connect(self, gateway_url: str):
+    async def connect(self, gateway_url: Optional[str] = ...):
         ...
 
     async def close(self):

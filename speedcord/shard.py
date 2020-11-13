@@ -1,6 +1,8 @@
 """
 Created by Epic at 9/5/20
 """
+from .exceptions import GatewayUnavailable
+from .http import Route
 
 from asyncio import Event, Lock, AbstractEventLoop, sleep
 from aiohttp.client_exceptions import ClientConnectorError
@@ -9,7 +11,6 @@ from logging import getLogger
 from sys import platform
 from ujson import loads, dumps
 from time import time
-from .exceptions import GatewayUnavailable
 
 
 class DefaultShard:
@@ -53,15 +54,17 @@ class DefaultShard:
 
         self.client.event_dispatcher.register("READY", self.handle_ready)
 
-    async def connect(self, gateway_url):
+    async def connect(self, gateway_url=None):
         """
         Connects to the gateway. Usually done by the client.
         :param gateway_url: The gateway url.
         """
-        if self.ws is not None:
-            if not self.ws.closed:
-                await self.ws.close()
-            self.ws = None
+        await self.close()
+        if gateway_url is None:
+            r = Route("GET", "/gateway")
+            resp = await self.client.http.request(r)
+            data = await resp.json(loads=loads())
+            gateway_url = data["url"]
         self.gateway_url = gateway_url
         try:
             self.ws = await self.client.http.create_ws(gateway_url, compression=0)
@@ -168,7 +171,7 @@ class DefaultShard:
                 if self.failed_heartbeats > 2:
                     self.logger.warning("Gateway stopped responding, reconnecting!")
                     await self.close()
-                    await self.connect(self.gateway_url)
+                    await self.connect()  # Don't cache gateway url here as the server is shutting down.
                     return
             self.received_heartbeat_ack = False
             await self.send({
