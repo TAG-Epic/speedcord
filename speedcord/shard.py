@@ -5,6 +5,7 @@ from .exceptions import GatewayUnavailable
 from .http import Route
 
 from asyncio import Event, Lock, AbstractEventLoop, sleep
+from asyncio.exceptions import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSMessage, WSMsgType
 from logging import getLogger
@@ -71,6 +72,11 @@ class DefaultShard:
         except ClientConnectorError:
             await self.client.close()
             raise GatewayUnavailable() from None
+        except TimeoutError:
+            self.logger.debug("Gateway server is down, finding a new server.")
+            await self.client.close()
+            await self.connect()
+            return 
         self.loop.create_task(self.read_loop())
         self.connected.set()
         if self.session_id is None:
