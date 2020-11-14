@@ -18,5 +18,5 @@ setup(
 	long_description_content_type="text/markdown",
 	install_requires=["aiohttp", "ujson"],
 	description='A simple lightweight Discord library',
-	python_requires='>=3.7',
+	python_requires='>=3.8',
 )
