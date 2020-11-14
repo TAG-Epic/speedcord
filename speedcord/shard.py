@@ -65,7 +65,7 @@ class DefaultShard:
         if gateway_url is None:
             r = Route("GET", "/gateway")
             resp = await self.client.http.request(r)
-            data = await resp.json(loads=loads())
+            data = await resp.json(loads=loads)
             gateway_url = data["url"]
         self.gateway_url = gateway_url
         try:
