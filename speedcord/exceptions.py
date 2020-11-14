@@ -57,3 +57,36 @@ class GatewayClosed(GatewayException):
 class GatewayUnavailable(GatewayException):
     def __init__(self):
         super().__init__("Can't reach the discord gateway. Have you tried checking your internet?")
+
+
+class GatewayClosedUnexpected(GatewayException):
+    pass
+
+
+class GatewayNotAuthenticated(GatewayClosedUnexpected):
+    def __init__(self):
+        super().__init__("We sent a payload to the discord gateway before authenticating.")
+
+
+class InvalidShardCount(GatewayException):
+    def __init__(self):
+        super().__init__("Invalid shard count sent to discord. Please modify your shard_count.")
+
+
+class InvalidGatewayVersion(GatewayException):
+    def __init__(self):
+        super().__init__("Invalid gateway version provided!")
+
+
+class IntentException(GatewayException):
+    pass
+
+
+class InvalidIntentNumber(IntentException):
+    def __init__(self):
+        super().__init__("The intent number you provided is not valid.")
+
+
+class IntentNotWhitelisted(IntentException):
+    def __init__(self):
+        super().__init__("You tried to launch with intents you are not whitelisted for.")

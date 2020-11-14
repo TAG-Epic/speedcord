@@ -58,3 +58,32 @@ class GatewayClosed(GatewayException):
 class GatewayUnavailable(GatewayException):
     def __init__(self):
         ...
+
+
+class GatewayClosedUnexpected(GatewayException):
+    ...
+
+
+class GatewayNotAuthenticated(GatewayClosedUnexpected):
+    def __init__(self):
+        ...
+
+
+class InvalidShardCount(GatewayClosedUnexpected):
+    def __init__(self):
+        ...
+
+class InvalidGatewayVersion(GatewayClosedUnexpected):
+    def __init__(self):
+        ...
+
+class IntentException(GatewayException):
+    ...
+
+class InvalidIntentNumber(IntentException):
+    def __init__(self):
+        ...
+
+class IntentNotWhitelisted(IntentException):
+    def __init__(self):
+        ...

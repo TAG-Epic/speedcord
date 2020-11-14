@@ -44,6 +44,9 @@ class DefaultShard:
     async def send(self, data: dict):
         ...
 
+    async def on_disconnect(self, close_code: int):
+        ...
+
     async def identify(self):
         ...
 

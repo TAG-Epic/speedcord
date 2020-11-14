@@ -25,6 +25,7 @@ class Client:
     exit_event: Event
     remaining_connections: Optional[int]
     connection_lock: Lock
+    fatal_exception: Optional[Exception]
 
     def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None,
                  shard_ids: Optional[List[int]] = None):
@@ -43,6 +44,8 @@ class Client:
         ...
 
     async def close(self):
+        ...
+    async def fatal(self, exception: Optional[Exception]):
         ...
 
     def listen(self, event: Union[str, int]) -> Callable[[Callable[[dict, DefaultShard], Any]], Any]:

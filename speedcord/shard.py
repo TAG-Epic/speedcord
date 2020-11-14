@@ -1,7 +1,8 @@
 """
 Created by Epic at 9/5/20
 """
-from .exceptions import GatewayUnavailable
+from .exceptions import GatewayUnavailable, GatewayNotAuthenticated, InvalidToken, InvalidShardCount, \
+    InvalidGatewayVersion, IntentNotWhitelisted, InvalidIntentNumber
 from .http import Route
 
 from asyncio import Event, Lock, AbstractEventLoop, sleep
@@ -76,7 +77,7 @@ class DefaultShard:
             self.logger.debug("Gateway server is down, finding a new server.")
             await self.client.close()
             await self.connect()
-            return 
+            return
         self.loop.create_task(self.read_loop())
         self.connected.set()
         if self.session_id is None:
@@ -87,7 +88,7 @@ class DefaultShard:
                     gateway_url, shard_count, _, connections_reset_after = await self.client.get_gateway()
                     await sleep(connections_reset_after / 1000)
                     gateway_url, shard_count, \
-                        self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
+                    self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
                 await self.identify()
         else:
             await self.resume()
@@ -111,6 +112,7 @@ class DefaultShard:
                     f"WebSocket is closing! Details: {message.json()}. Close code: {self.ws.close_code}")
             else:
                 self.logger.warning("Unknown message type: " + str(type(message)))
+        await self.on_disconnect(self.ws.close_code)
 
     async def send(self, data: dict):
         """
@@ -127,6 +129,60 @@ class DefaultShard:
                 await sleep(self.gateway_send_reset - current_time)
             self.logger.debug("Data sent: " + str(data))
             await self.ws.send_json(data, dumps=dumps)
+
+    async def on_disconnect(self, close_code: int):
+        if close_code == 4000:
+            # Unknown error
+            self.logger.info("Gateway closed due to an unknown error.")
+            await self.connect(self.gateway_url)
+        elif close_code == 4001:
+            # Unknown opcode
+            self.logger.warning("An invalid opcode was sent to the gateway. Reconnecting!")
+            await self.connect(self.gateway_url)
+        elif close_code == 4002:
+            self.logger.warning("An payload that couldn't be decoded by the gateway was sent to discord. Reconnecting!")
+            await self.connect(self.gateway_url)
+        elif close_code == 4003:
+            await self.client.fatal(GatewayNotAuthenticated())
+        elif close_code == 4004:
+            await self.client.fatal(InvalidToken())
+        elif close_code == 4005:
+            self.logger.error("Already authenticated to the gateway. Reconnecting!")
+            await self.connect(self.gateway_url)
+        elif close_code == 4007:
+            self.logger.warning("Invalid seq number, reconnecting with a new session!")
+            self.session_id = None
+            self.last_event_id = None
+            await self.connect(self.gateway_url)
+        elif close_code == 4008:
+            self.logger.warning(
+                "Library is sending too many payloads to the gateway! Please create a issue on the github repo")
+            await self.connect(self.gateway_url)
+        elif close_code == 4009:
+            self.logger.info("A session timed out! Reconnecting with a new session.")
+            self.session_id = None
+            self.last_event_id = None
+            await self.connect(self.gateway_url)
+        elif close_code == 4010:
+            if self.client.shard_count is not None:
+                await self.client.fatal(InvalidShardCount())
+                return
+            self.logger.info("Forced to scale up guild count, expect downtime.")
+            await self.client.close()
+            for shard in self.client.shards:
+                await shard.close()
+            self.client.connected.clear()
+            self.client.shards = []
+            await self.client.connect()
+            self.logger.info("Shard scale done.")
+        elif close_code == 4012:
+            await self.client.fatal(InvalidGatewayVersion())
+        elif close_code == 4013:
+            await self.client.fatal(InvalidIntentNumber())
+        elif close_code == 4014:
+            await self.client.fatal(IntentNotWhitelisted())
+        else:
+            self.logger.warning(f"Unknown close code received. Close code: {close_code}.")
 
     async def identify(self):
         """
@@ -216,5 +272,6 @@ class DefaultShard:
         if not data.get("d", False):
             # Session is no longer valid, create a new session
             self.session_id = None
+            self.last_event_id = None
         await self.close()
         await self.connect(self.gateway_url)

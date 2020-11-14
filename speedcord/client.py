@@ -40,6 +40,7 @@ class Client:
         self.exit_event = Event(loop=self.loop)
         self.remaining_connections = None
         self.connection_lock = Lock(loop=self.loop)
+        self.fatal_exception = None
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -56,6 +57,8 @@ class Client:
             self.loop.run_until_complete(self.start())
         except KeyboardInterrupt:
             self.loop.run_until_complete(self.close())
+        if self.fatal_exception is not None:
+            raise self.fatal_exception from None
 
     async def get_gateway(self):
         """
@@ -132,6 +135,14 @@ class Client:
         await self.http.close()
         for shard in self.shards:
             await shard.close()
+
+    async def fatal(self, exception):
+        """
+        Raises a fatal exception to the bot.
+        Please do not use this for non-fatal exceptions.
+        """
+        self.fatal_exception = exception
+        await self.close()
 
     def listen(self, event):
         """
