@@ -10,7 +10,8 @@ class DefaultGatewayHandler:
 
     Parameters
     ----------
-    client: A speedcord.Client object to connect gateway handler to.
+    client: speedcord.Client
+        A speedcord.Client object to connect the gateway handler to.
     """
 
     def __init__(self, client):
