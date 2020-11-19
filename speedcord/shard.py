@@ -16,15 +16,19 @@ from time import time
 
 
 class DefaultShard:
+    """
+    This represents a Discord Shard.
+    For more information on what sharding is and how it works: https://discord.dev/topics/gateway#sharding.
+    ----------
+    shard_id: int
+        ID of the shard.
+    client: Client
+        A :class:`Client` object which will manage the shards.
+    loop: AbstractEventLoop
+        An AbstractEventLoop used to create callbacks.
+    """
+
     def __init__(self, shard_id, client, loop: AbstractEventLoop):
-        """
-        Handles all Discord Shard related events. For more information on what sharding is and how it works:
-        https://discord.com/developers/docs/topics/gateway#sharding.
-        This simply represents a Discord Shard. The actual handling of events happens via the client's handlers.
-        :param shard_id: The id for the shard.
-        :param client: A speedcord.Client object which will manage the shards.
-        :param loop: an AbstractEventLoop which is used to create callbacks.
-        """
         self.id = shard_id
         self.client = client
         self.loop = loop
@@ -59,7 +63,16 @@ class DefaultShard:
     async def connect(self, gateway_url=None):
         """
         Connects to the gateway. Usually done by the client.
-        :param gateway_url: The gateway url.
+
+        Parameters
+        ----------
+        gateway_url: str
+            The gateway URL.
+
+        Raises
+        ------
+        GatewayUnavailable
+            The Discord gateway could not be reached.
         """
         await self.close()
         if gateway_url is None:
@@ -88,12 +101,15 @@ class DefaultShard:
                     gateway_url, shard_count, _, connections_reset_after = await self.client.get_gateway()
                     await sleep(connections_reset_after / 1000)
                     gateway_url, shard_count, \
-                        self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
+                    self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
                 await self.identify()
         else:
             await self.resume()
 
     async def close(self):
+        """
+        Closes the shard and clears flags
+        """
         if self.ws is not None and not self.ws.closed:
             await self.ws.close()
         self.connected.clear()
@@ -116,7 +132,12 @@ class DefaultShard:
 
     async def send(self, data: dict):
         """
-        Attempts to send a message via the gateway. Checks for the gateway ratelimit before doing so.
+        Attempts to send a message via the gateway. Checks for the gateway ratelimit beforehand.
+
+        Parameters
+        ----------
+        data: dict
+            The data to send to the discord API
         """
         async with self.gateway_send_lock:
             current_time = time()
@@ -131,6 +152,14 @@ class DefaultShard:
             await self.ws.send_json(data, dumps=dumps)
 
     async def on_disconnect(self, close_code: int):
+        """
+        Handles a disconnect
+
+        Parameters
+        ----------
+        close_code: int
+            The WebSocket close code.
+        """
         if close_code == 4000:
             # Unknown error
             self.logger.info("Gateway closed due to an unknown error.")
@@ -187,7 +216,7 @@ class DefaultShard:
     async def identify(self):
         """
         Sends an identify message to the gateway, which is the initial handshake.
-        https://discord.com/developers/docs/topics/gateway#identify
+        https://discord.dev/topics/gateway#identify
         """
         await self.send({
             "op": 2,
@@ -207,7 +236,7 @@ class DefaultShard:
         """
         Sends a resume message to the gateway, which resumes any events stopped in
         case of some sort of a disconnect.
-        https://discord.com/developers/docs/topics/gateway#resume
+        https://discord.dev/topics/gateway#resume
         """
         await self.send({
             "op": 6,
@@ -220,8 +249,8 @@ class DefaultShard:
 
     async def heartbeat_loop(self):
         """
-        Sends a heartbeat_loop message to the gateway - used to keep the connection alive.
-        https://discord.com/developers/docs/topics/gateway#heartbeat
+        Sends a heartbeat_loop message to the gateway every so often.
+        https://discord.dev/topics/gateway#heartbeat
         """
         await self.is_ready.wait()
         sess_id = self.session_id
@@ -247,6 +276,16 @@ class DefaultShard:
             await sleep(self.heartbeat_interval)
 
     async def handle_hello(self, data, shard):
+        """
+        Handles discord sending the heartbeat interval.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            Data sent by Discord gateway.
+        shard: DefaultShard
+            Shard the data was sent to.
+        """
         if shard.id != self.id:
             return
         self.received_heartbeat_ack = True
@@ -255,18 +294,47 @@ class DefaultShard:
         self.logger.debug("Started heartbeat loop")
 
     async def handle_heartbeat_ack(self, data, shard):
+        """
+        Handles heartbeat acknowledgements.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            Data sent by Discord gateway.
+        shard: DefaultShard
+            Shard the data was sent to.
+        """
         if shard.id != self.id:
             return
         self.received_heartbeat_ack = True
         self.failed_heartbeats = 0
 
     async def handle_ready(self, data, shard):
+        """
+        Handles discord sending us the session_id for reconnects and marks the client as ready.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            Data sent by Discord gateway.
+        shard: DefaultShard
+            Shard the data was sent to.
+        """
         if shard.id != self.id:
             return
         self.session_id = data["session_id"]
         self.is_ready.set()
 
     async def handle_invalid_session(self, data, shard):
+        """
+        Handles invalid sessions and creates a new session if necessary.
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            Data sent by Discord gateway.
+        shard: DefaultShard
+            Shard the data was sent to.
+        """
         if shard.id != self.id:
             return
         if not data.get("d", False):

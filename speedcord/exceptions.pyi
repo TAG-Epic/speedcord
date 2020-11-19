@@ -36,11 +36,6 @@ class InvalidToken(LoginException):
         ...
 
 
-class ShardingNotSupported(LoginException):
-    def __init__(self):
-        ...
-
-
 class ConnectionsExceeded(LoginException):
     def __init__(self):
         ...
@@ -73,16 +68,20 @@ class InvalidShardCount(GatewayClosedUnexpected):
     def __init__(self):
         ...
 
+
 class InvalidGatewayVersion(GatewayClosedUnexpected):
     def __init__(self):
         ...
 
+
 class IntentException(GatewayException):
     ...
+
 
 class InvalidIntentNumber(IntentException):
     def __init__(self):
         ...
+
 
 class IntentNotWhitelisted(IntentException):
     def __init__(self):

@@ -16,11 +16,24 @@ __all__ = ("Client",)
 class Client:
     def __init__(self, intents, token=None, *, shard_count=None, shard_ids=None):
         """
-        The client to interact with the discord API
-        :param intents: the intents to use
-        :param token: the discord bot token to use
-        :param shard_count: how many shards to use
-        :param shard_ids: A list of shard ids to spawn. Shard_count must be set for this to work
+        The client used to interact with the discord API.
+
+        Parameters
+        ----------
+        intents: int
+            The intents to use.
+        token: Optional[str]
+            Discord bot token to use.
+        shard_count: Optional[int]
+            How many shards the client should use.
+        shard_ids: Optional[List[int]]
+            A list of shard IDs to spawn. ``shard_count`` must be set for this
+            to work.
+
+        Raises
+        ------
+        TypeError
+            ``shard_ids`` was set without ``shard_count``.
         """
         # Configurable stuff
         self.intents = int(intents)
@@ -51,7 +64,7 @@ class Client:
 
     def run(self):
         """
-        Starts the client
+        Starts the client.
         """
         try:
             self.loop.run_until_complete(self.start())
@@ -63,10 +76,18 @@ class Client:
     async def get_gateway(self):
         """
         Get details about the gateway
-        :return: wss url to connect to
-        :return: how many shards to use
-        :return: how many gateway connections left
-        :return: how many ms until the gateway connection limit resets
+
+        Returns
+        -------
+        Tuple[str, int, int, int]
+            A tuple consisting of the wss url to connect to, how many shards
+            to use, how many gateway connections left, how many milliseconds
+            until the gateway connection limit resets.
+
+        Raises
+        ------
+        Unauthorized
+            Authentication failed.
         """
         route = Route("GET", "/gateway/bot")
         try:
@@ -90,7 +111,12 @@ class Client:
 
     async def connect(self):
         """
-        Connects to discord and spawns shards. Start has to be called first!
+        Connects to discord and spawns shards. :meth:`start()` has to be called first!
+
+        Raises
+        ------
+        InvalidToken
+            Provided token is invalid.
         """
         if self.token is None:
             raise InvalidToken
@@ -115,7 +141,12 @@ class Client:
 
     async def start(self):
         """
-        Sets up the http client and connects to discord and spawns shards.
+        Sets up the HTTP client, connects to Discord, and spawns shards.
+
+        Raises
+        ------
+        InvalidToken
+            Provided token is invalid.
         """
         if self.token is None:
             raise InvalidToken
@@ -128,7 +159,7 @@ class Client:
 
     async def close(self):
         """
-        Closes the http client and disconnects all shards
+        Closes the HTTP client and disconnects all shards.
         """
         self.connected.clear()
         self.exit_event.set()
@@ -146,8 +177,17 @@ class Client:
 
     def listen(self, event):
         """
-        Listen to a event or a opcode.
-        :param event: a opcode or event name to listen to
+        Listen to an event or opcode.
+
+        Parameters
+        ----------
+        event: Union[int, str]
+            An opcode or event name to listen to.
+
+        Raises
+        ------
+        TypeError
+            Invalid event type was passed.
         """
 
         def get_func(func):
@@ -163,8 +203,13 @@ class Client:
     # Handle events
     async def handle_dispatch(self, data, shard):
         """
-        Dispatches a event to the event handler
-        :param data: the data to dispatch
-        :param shard: What shard was the event received on
+        Dispatches a event to the event handler.
+
+        Parameters
+        ----------
+        data: Dict[str, Any]
+            The data to dispatch.
+        shard: DefaultShard
+            Shard the event was received on.
         """
         self.event_dispatcher.dispatch(data["t"], data["d"], shard)

@@ -16,15 +16,19 @@ __all__ = ("Route", "HttpClient")
 
 
 class Route:
+    """
+    Describes an API route. Used by HttpClient to send requests. For a list of routes and their parameters,
+    refer to https://discord.com/developers/docs/reference.
+    Parameters
+    ----------
+    method: str
+        Standard HTTPS method.
+    route: str
+        Discord API route.
+    parameters: Dict[str, Any]
+        Parameters to send with the request.
+    """
     def __init__(self, method, route, **parameters):
-        """
-        Describes an API route. Used by HttpClient to send requests.
-        For a list of routes and their parameters, refer to https://discord.com/developers/docs/reference.
-        :param method: Standard HTTPS method.
-        :param route: Discord API route.
-        :param parameters: Parameters to send with the request.
-        :param channel_id: The id of the channel to use in the ratelimit bucket.
-        """
         self.method = method
         self.path = route.format(**parameters)
 
@@ -54,6 +58,9 @@ class LockManager:
         return self
 
     def defer(self):
+        """
+        Stops the lock from being automatically being unlocked when it ends
+        """
         self.unlock = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -62,13 +69,19 @@ class LockManager:
 
 
 class HttpClient:
+    """
+    An HTTP client that handles Discord rate limits.
+
+    Parameters
+    ----------
+    token: str
+        A Discord bot token. To create a bot - https://discordpy.readthedocs.io/en/latest/discord.html
+    **baseuri: str
+        Discord's API URI.
+    **loop: AbstractEventLoop
+        An event loop to use for callbacks.
+    """
     def __init__(self, token, *, baseuri="https://discord.com/api/v8", loop=asyncio.get_event_loop()):
-        """
-        An http client which handles discord ratelimits.
-        :param token: The Discord Bot token. To create a bot - https://discordpy.readthedocs.io/en/latest/discord.html
-        :param baseuri: Discord's API uri.
-        :param loop: an asyncio.AbstractEventLoop to use for callbacks.
-        """
         self.baseuri = baseuri
         self.token = token
         self.loop = loop
@@ -94,8 +107,13 @@ class HttpClient:
     async def create_ws(self, url, *, compression) -> ClientWebSocketResponse:
         """
         Opens a websocket to the specified url.
-        :param url: The url that the websocket will conenct to.
-        :param compression: Whether to enable compression. Refer to https://discord.com/developers/docs/topics/gateway
+
+        Parameters
+        ----------
+        url: str
+            The URL that the websocket will connect to.
+        compression: int
+            Whether to enable compression.
         """
         options = {
             "max_msg_size": 0,
@@ -110,17 +128,14 @@ class HttpClient:
 
     async def request(self, route: Route, **kwargs):
         """
-        Sends a request to the Discord API. Handles rate limits by utilizing LockManager and
-        the Discord API Bucket system - https://discord.com/developers/docs/topics/gateway#encoding-and-compression.
+        Sends a request to the Discord API.
 
-        When the client wants to send a new request, this method attempts to acquire a ratelimit
-        lock. When it eventually does, it sends a request and checks to see if the ratelimit has
-        been exceeded. If so, that Bucket's LockManager is locked so other requests cannot
-        acquire a lock. The Discord Bucket system returns a `delta` value which specifies how
-        long it will take before another request can be sent and the LockManager for that Bucket
-        can be unlocked.
-        :param route: The Discord API route to send a request to.
-        :param kwargs: The parameters to send with the request.
+        Parameters
+        ----------
+        route: Route
+            The Discord API route to send a request to.
+        **kwargs: Dict[str, Any]
+            The parameters being passed to asyncio.ClientSession.request
         """
         bucket = route.bucket
 
