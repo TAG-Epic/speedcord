@@ -94,7 +94,8 @@ class Client:
         """
         if self.token is None:
             raise InvalidToken
-
+        if self.http is None:
+            self.http = HttpClient(self.token, loop=self.loop)
         try:
             gateway_url, shard_count, _, connections_reset_after = await self.get_gateway()
         except Unauthorized:
