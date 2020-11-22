@@ -97,6 +97,8 @@ class HttpClient:
         :param url: The url that the websocket will conenct to.
         :param compression: Whether to enable compression. Refer to https://discord.com/developers/docs/topics/gateway
         """
+        if self.session.closed:
+            self.session = ClientSession()
         options = {
             "max_msg_size": 0,
             "timeout": 60,
@@ -122,6 +124,8 @@ class HttpClient:
         :param route: The Discord API route to send a request to.
         :param kwargs: The parameters to send with the request.
         """
+        if self.session.closed:
+            self.session = ClientSession()
         bucket = route.bucket
 
         for i in range(self.retry_attempts):
