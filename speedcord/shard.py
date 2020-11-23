@@ -40,6 +40,7 @@ class DefaultShard:
         self.failed_heartbeats = 0
         self.session_id = None
         self.last_event_id = None  # This gets modified by gateway.py
+        self.is_closing = False
 
         self.gateway_send_lock = Lock(loop=self.loop)
         self.gateway_send_limit = 120
@@ -95,7 +96,9 @@ class DefaultShard:
 
     async def close(self):
         if self.ws is not None and not self.ws.closed:
+            self.is_closing = True
             await self.ws.close()
+            self.is_closing = False
         self.connected.clear()
         self.is_ready.clear()
 
@@ -181,8 +184,11 @@ class DefaultShard:
             await self.client.fatal(InvalidIntentNumber())
         elif close_code == 4014:
             await self.client.fatal(IntentNotWhitelisted())
+        elif self.is_closing and close_code is None:
+            return
         else:
-            self.logger.warning(f"Unknown close code received. Close code: {close_code}.")
+            self.logger.warning(f"Unknown close code received. Close code: {close_code}. Trying to reconnect!")
+            await self.connect(self.gateway_url)
 
     async def identify(self):
         """

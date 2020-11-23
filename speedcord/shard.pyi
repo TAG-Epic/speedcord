@@ -21,13 +21,15 @@ class DefaultShard:
     failed_heartbeats: int
     session_id: Optional[str]
     last_event_id: Optional[int]
-    is_ready: Event
+    is_closing: bool
 
     gateway_send_lock: Lock
     gateway_send_limit: int
     gateway_send_per: int
     gateway_send_left: int
     gateway_send_reset: float
+
+    is_ready: Event
 
     def __init__(self, shard_id: int, client: Client, loop: AbstractEventLoop):
         ...
