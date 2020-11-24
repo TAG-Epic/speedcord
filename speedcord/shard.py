@@ -1,18 +1,18 @@
 """
 Created by Epic at 9/5/20
 """
-from .exceptions import GatewayUnavailable, GatewayNotAuthenticated, InvalidToken, InvalidShardCount, \
+from .exceptions import GatewayUnavailable, GatewayNotAuthenticated, InvalidToken, \
     InvalidGatewayVersion, IntentNotWhitelisted, InvalidIntentNumber
 from .http import Route
+from .ratelimiter import TimesPer
 
-from asyncio import Event, Lock, AbstractEventLoop, sleep
+from asyncio import Event, AbstractEventLoop, sleep
 from asyncio.exceptions import TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSMessage, WSMsgType
 from logging import getLogger
 from sys import platform
 from ujson import loads, dumps
-from time import time
 
 
 class DefaultShard:
@@ -41,14 +41,13 @@ class DefaultShard:
         self.session_id = None
         self.last_event_id = None  # This gets modified by gateway.py
         self.is_closing = False
+        self.is_initial_connect = True
+        self.active = True
 
-        self.gateway_send_lock = Lock(loop=self.loop)
-        self.gateway_send_limit = 120
-        self.gateway_send_per = 60
-        self.gateway_send_left = self.gateway_send_limit
-        self.gateway_send_reset = time() + self.gateway_send_per
+        self.send_ratelimiter = TimesPer(120, 60)
 
         self.is_ready = Event(loop=self.loop)
+        self.active = False  # Will only handle core events
 
         # Default events
         self.client.opcode_dispatcher.register(10, self.handle_hello)
@@ -81,18 +80,23 @@ class DefaultShard:
             return
         self.loop.create_task(self.read_loop())
         self.connected.set()
-        if self.session_id is None:
-            async with self.client.connection_lock:
-                self.client.remaining_connections -= 1
-                if self.client.remaining_connections <= 1:
-                    self.logger.info("Max connections reached!")
-                    gateway_url, shard_count, _, connections_reset_after = await self.client.get_gateway()
-                    await sleep(connections_reset_after / 1000)
-                    gateway_url, shard_count, \
-                        self.client.remaining_connections, connections_reset_after = await self.client.get_gateway()
-                await self.identify()
-        else:
-            await self.resume()
+        if not self.is_initial_connect:
+            if self.session_id is None:
+                async with self.client.connection_lock:
+                    self.client.remaining_connections -= 1
+                    if self.client.remaining_connections <= 1:
+                        self.logger.info("Max connections reached!")
+                        gateway_url, shard_count, connections_left, \
+                        connections_reset_after, max_concurrency = await self.client.get_gateway()
+                        await sleep(connections_reset_after / 1000)
+                        gateway_url, shard_count, connections_left, \
+                        connections_reset_after, max_concurrency = await self.client.get_gateway()
+                        self.client.remaining_connections = connections_left
+                    await self.identify()
+                    return
+            else:
+                await self.resume()
+        await self.identify()
 
     async def close(self):
         if self.ws is not None and not self.ws.closed:
@@ -109,7 +113,14 @@ class DefaultShard:
         message: WSMessage  # Fix typehinting
         async for message in self.ws:
             if message.type == WSMsgType.TEXT:
-                await self.client.gateway_handler.on_receive(message.json(loads=loads), self)
+                data = message.json(loads=loads)
+                if "s" in data.keys() and data["s"] is not None:
+                    self.last_event_id = data["s"]
+                self.logger.debug("Data received: " + str(data))
+                if self.active:
+                    self.client.opcode_dispatcher.dispatch(data["op"], data, self)
+                else:
+                    self.loop.create_task(self.handle_dispatch(data))
             elif message.type in [WSMsgType.CLOSE, WSMsgType.CLOSING, WSMsgType.CLOSED]:
                 self.logger.warning(
                     f"WebSocket is closing! Details: {message.json()}. Close code: {self.ws.close_code}")
@@ -121,80 +132,81 @@ class DefaultShard:
         """
         Attempts to send a message via the gateway. Checks for the gateway ratelimit before doing so.
         """
-        async with self.gateway_send_lock:
-            current_time = time()
-            if current_time >= self.gateway_send_reset:
-                self.gateway_send_reset = current_time + self.gateway_send_per
-                self.gateway_send_left = self.gateway_send_limit
-            if self.gateway_send_left == 0:
-                sleep_for = self.gateway_send_reset - current_time
-                self.logger.debug(f"Gateway ratelimited! Sleeping for {sleep_for}s")
-                await sleep(self.gateway_send_reset - current_time)
-            self.logger.debug("Data sent: " + str(data))
-            await self.ws.send_json(data, dumps=dumps)
+        self.logger.debug("Sending data...")
+        await self.send_ratelimiter.trigger()
+        self.logger.debug("Data sent: " + str(data))
+        await self.ws.send_json(data, dumps=dumps)
+
+    async def rescale_shards(self):
+        if self.client.shard_ids is not None:
+            return
+        self.logger.info("Rescaling shards. Shard will be down until all shards are up.")
+        new_shards = []
+        await self.client.spawn_shards(new_shards, activate_automatically=False)
+        for shard in self.client.shards:
+            await shard.close()
+        for shard in new_shards:
+            shard.active = True
+        self.client.shards = new_shards
 
     async def on_disconnect(self, close_code: int):
-        if close_code == 4000:
-            # Unknown error
-            self.logger.info("Gateway closed due to an unknown error.")
-            await self.connect(self.gateway_url)
-        elif close_code == 4001:
-            # Unknown opcode
-            self.logger.warning("An invalid opcode was sent to the gateway. Reconnecting!")
-            await self.connect(self.gateway_url)
-        elif close_code == 4002:
-            self.logger.warning("An payload that couldn't be decoded by the gateway was sent to discord. Reconnecting!")
-            await self.connect(self.gateway_url)
-        elif close_code == 4003:
-            await self.client.fatal(GatewayNotAuthenticated())
-        elif close_code == 4004:
-            await self.client.fatal(InvalidToken())
-        elif close_code == 4005:
-            self.logger.error("Already authenticated to the gateway. Reconnecting!")
-            await self.connect(self.gateway_url)
-        elif close_code == 4007:
-            self.logger.warning("Invalid seq number, reconnecting with a new session!")
-            self.session_id = None
-            self.last_event_id = None
-            await self.connect(self.gateway_url)
-        elif close_code == 4008:
-            self.logger.warning(
-                "Library is sending too many payloads to the gateway! Please create a issue on the github repo")
-            await self.connect(self.gateway_url)
-        elif close_code == 4009:
-            self.logger.info("A session timed out! Reconnecting with a new session.")
-            self.session_id = None
-            self.last_event_id = None
-            await self.connect(self.gateway_url)
-        elif close_code == 4010:
-            if self.client.shard_count is not None:
-                await self.client.fatal(InvalidShardCount())
-                return
-            self.logger.info("Forced to scale up guild count, expect downtime.")
-            await self.client.close()
-            for shard in self.client.shards:
-                await shard.close()
-            self.client.connected.clear()
-            self.client.shards = []
-            await self.client.connect()
-            self.logger.info("Shard scale done.")
-        elif close_code == 4012:
-            await self.client.fatal(InvalidGatewayVersion())
-        elif close_code == 4013:
-            await self.client.fatal(InvalidIntentNumber())
-        elif close_code == 4014:
-            await self.client.fatal(IntentNotWhitelisted())
-        elif self.is_closing and close_code is None:
+        # close_code: (action, action_data, save_session, save_gateway_url)
+        handlers = {
+            4000: ("INFO", "Gateway closed due to an unknown error. ", True, True),
+            4001: ("WARN", "An invalid opcode was sent to the gateway. ", True, True),
+            4002: ("WARN", "An payload that couldn't be decoded by the gateway was sent to discord. ", True, True),
+            4003: ("FATAL", GatewayNotAuthenticated, False, False),
+            4004: ("FATAL", InvalidToken, False, False),
+            4005: ("WARN", "Already authenticated to the gateway. ", True, True),
+            4007: ("WARN", "Invalid seq number. ", False, True),
+            4008: ("WARN", "We are sending too many payloads to the gateway! Please create a issue on the github. ",
+                   False, False),
+            4009: ("WARN", "A session timed out! Reconnecting with a new session. ", False, True),
+            4010: ("FUNC", self.rescale_shards, True, True),
+            4012: ("FATAL", InvalidGatewayVersion, False, False),
+            4013: ("FATAL", InvalidIntentNumber, False, False),
+            4014: ("FATAL", IntentNotWhitelisted, False, False),
+            None: ("WARN", f"Unknown close code received. Close code: {close_code}. ", True, True)
+        }
+        if self.is_closing:
             return
-        else:
-            self.logger.warning(f"Unknown close code received. Close code: {close_code}. Trying to reconnect!")
+
+        handler = handlers.get(close_code, handlers[None])
+        action, action_data, save_session, save_gateway_url = handler
+        if action == "FATAL":
+            await self.client.fatal(action_data())
+            return
+        elif action in ["INFO", "WARN"]:
+            log_string = action_data
+            log_string += "Reconnecting "
+            if not save_session and save_gateway_url:
+                self.session_id = None
+                self.last_event_id = None
+                log_string += "with a new session"
+            elif not save_session and not save_gateway_url:
+                self.session_id = None
+                self.last_event_id = None
+                self.gateway_url = None
+                log_string += "with a new session and gateway endpoint"
+            elif save_session and not save_gateway_url:
+                log_string += "with a new gateway endpoint"
+            log_string += "."
+
+            if action == "INFO":
+                self.logger.info(log_string)
+            else:
+                self.logger.warning(log_string)
             await self.connect(self.gateway_url)
+        elif action == "FUNC":
+            self.logger.debug(close_code)
+            await action_data()
 
     async def identify(self):
         """
         Sends an identify message to the gateway, which is the initial handshake.
         https://discord.com/developers/docs/topics/gateway#identify
         """
+        self.logger.debug("Identifying..")
         await self.send({
             "op": 2,
             "d": {
@@ -205,7 +217,7 @@ class DefaultShard:
                     "$device": "SpeedCord"
                 },
                 "intents": self.client.intents,
-                "shard": (self.id, self.client.shard_count)
+                "shard": (self.id, self.client.current_shard_count)
             }
         })
 
@@ -252,6 +264,25 @@ class DefaultShard:
                 self.heartbeat_count = 0
             await sleep(self.heartbeat_interval)
 
+    async def handle_dispatch(self, data):
+        handlers = {
+            9: self.handle_invalid_session,
+            10: self.handle_hello,
+            11: self.handle_heartbeat_ack
+        }
+        if "t" not in data.keys():
+            return
+        if data["t"] is None:
+            event_handler = handlers.get(data["op"])
+            if event_handler is None:
+                return
+            await event_handler(data, self)
+        else:
+            event_handler = getattr(self, "handle_" + data["t"].lower(), None)
+            if event_handler is None:
+                return
+            await event_handler(data["d"], self)
+
     async def handle_hello(self, data, shard):
         if shard.id != self.id:
             return
@@ -265,6 +296,7 @@ class DefaultShard:
             return
         self.received_heartbeat_ack = True
         self.failed_heartbeats = 0
+        self.logger.debug("Received heartbeat successfully!")
 
     async def handle_ready(self, data, shard):
         if shard.id != self.id:

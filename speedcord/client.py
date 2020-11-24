@@ -1,14 +1,15 @@
 """
 Created by Epic at 9/1/20
 """
-from asyncio import Event, get_event_loop, Lock
+from asyncio import Event, get_event_loop, Lock, sleep
 from logging import getLogger
+from time import time
 
 from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
 from .http import HttpClient, Route
 from .dispatcher import OpcodeDispatcher, EventDispatcher
-from .gateway import DefaultGatewayHandler
 from .shard import DefaultShard
+from .ratelimiter import TimesPer
 
 __all__ = ("Client",)
 
@@ -35,12 +36,13 @@ class Client:
         self.http = None
         self.opcode_dispatcher = OpcodeDispatcher(self.loop)
         self.event_dispatcher = EventDispatcher(self.loop)
-        self.gateway_handler = DefaultGatewayHandler(self)
         self.connected = Event()
         self.exit_event = Event(loop=self.loop)
         self.remaining_connections = None
         self.connection_lock = Lock(loop=self.loop)
         self.fatal_exception = None
+        self.connect_ratelimiter = None
+        self.current_shard_count = None
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -79,14 +81,14 @@ class Client:
         shards = data["shards"]
         remaining_connections = data["session_start_limit"]["remaining"]
         connections_reset_after = data["session_start_limit"]["reset_after"]
+        max_concurrency = data["session_start_limit"]["max_concurrency"]
         gateway_url = data["url"]
 
         if remaining_connections == 0:
             raise ConnectionsExceeded
         self.remaining_connections = remaining_connections
         self.logger.debug(f"{remaining_connections} gateway connections left!")
-
-        return gateway_url, shards, remaining_connections, connections_reset_after
+        return gateway_url, shards, remaining_connections, connections_reset_after, max_concurrency
 
     async def connect(self):
         """
@@ -96,23 +98,7 @@ class Client:
             raise InvalidToken
         if self.http is None:
             self.http = HttpClient(self.token, loop=self.loop)
-        if self.http.session.closed:
-            self.http = self.http.__class__(self.token)
-        try:
-            gateway_url, shard_count, _, connections_reset_after = await self.get_gateway()
-        except Unauthorized:
-            self.exit_event.clear()
-            raise InvalidToken
-
-        if self.shard_count is None or self.shard_count < shard_count:
-            self.shard_count = shard_count
-
-        shard_ids = self.shard_ids or range(self.shard_count)
-        for shard_id in shard_ids:
-            self.logger.debug(f"Launching shard {shard_id}")
-            shard = DefaultShard(shard_id, self, loop=self.loop)
-            self.loop.create_task(shard.connect(gateway_url))
-            self.shards.append(shard)
+        await self.spawn_shards(self.shards, shard_ids=self.shard_ids)
         self.connected.set()
         self.logger.info("All shards connected!")
 
@@ -146,6 +132,41 @@ class Client:
         """
         self.fatal_exception = exception
         await self.close()
+
+    async def spawn_shards(self, shard_list, *, activate_automatically=True, shard_ids=None):
+        try:
+            gateway_url, shard_count, connections_left,\
+                connections_reset_after, max_concurrency = await self.get_gateway()
+        except Unauthorized as e:
+            await self.fatal(e)
+            return
+        if self.connect_ratelimiter is None:
+            self.connect_ratelimiter = TimesPer(max_concurrency, 5)
+        self.current_shard_count = self.shard_count or shard_count
+        if shard_ids is None:
+            shard_ids = range(shard_count)
+        async with self.connection_lock:
+            for shard_id in shard_ids:
+                connections_left -= 1
+                if connections_left <= 1:
+                    sleep_time = (connections_reset_after / 1000) - time()
+                    if sleep_time > 0:
+                        self.logger.warning("You have used up all your gateway IDENTIFYs. Sleeping until it resets.")
+                        await sleep(connections_reset_after - time())
+                    try:
+                        gateway_url, shard_count, connections_left,\
+                            connections_reset_after, max_concurrency = await self.get_gateway()
+                    except Unauthorized as e:
+                        await self.fatal(e)
+                        return
+                await self.connect_ratelimiter.trigger()
+                self.logger.info(f"Launching shard {shard_id}")
+                shard = DefaultShard(shard_id, self, loop=self.loop)
+                if not activate_automatically:
+                    shard.active = False
+                await shard.connect(gateway_url)
+                shard_list.append(shard)
+            self.remaining_connections = connections_left
 
     def listen(self, event):
         """

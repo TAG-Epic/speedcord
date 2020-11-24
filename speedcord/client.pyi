@@ -6,6 +6,7 @@ from .shard import DefaultShard
 from .http import HttpClient
 from .dispatcher import EventDispatcher, OpcodeDispatcher
 from .gateway import DefaultGatewayHandler
+from .ratelimiter import TimesPer
 
 
 class Client:
@@ -26,6 +27,8 @@ class Client:
     remaining_connections: Optional[int]
     connection_lock: Lock
     fatal_exception: Optional[Exception]
+    connect_ratelimiter: Optional[TimesPer]
+    current_shard_count: Optional[int]
 
     def __init__(self, intents: int, token: Optional[str] = None, *, shard_count: Optional[int] = None,
                  shard_ids: Optional[List[int]] = None):
@@ -34,7 +37,7 @@ class Client:
     def run(self):
         ...
 
-    async def get_gateway(self) -> Tuple[str, int, int, int]:
+    async def get_gateway(self) -> Tuple[str, int, int, int, int]:
         ...
 
     async def connect(self):
@@ -45,7 +48,11 @@ class Client:
 
     async def close(self):
         ...
+
     async def fatal(self, exception: Optional[Exception]):
+        ...
+
+    async def spawn_shards(self, shard_list: list, *, activate_automatically: bool = True, shard_ids: Optional[List] = None):
         ...
 
     def listen(self, event: Union[str, int]) -> Callable[[Callable[[dict, DefaultShard], Any]], Any]:

@@ -1,3 +1,5 @@
+from .ratelimiter import TimesPer
+
 from typing import Optional
 from speedcord import Client
 from asyncio import AbstractEventLoop, Lock, Event
@@ -22,12 +24,10 @@ class DefaultShard:
     session_id: Optional[str]
     last_event_id: Optional[int]
     is_closing: bool
+    is_initial_connect: bool
+    active: bool
 
-    gateway_send_lock: Lock
-    gateway_send_limit: int
-    gateway_send_per: int
-    gateway_send_left: int
-    gateway_send_reset: float
+    send_ratelimiter: TimesPer
 
     is_ready: Event
 
@@ -46,6 +46,9 @@ class DefaultShard:
     async def send(self, data: dict):
         ...
 
+    async def rescale_shards(self):
+        ...
+
     async def on_disconnect(self, close_code: int):
         ...
 
@@ -56,6 +59,9 @@ class DefaultShard:
         ...
 
     async def heartbeat_loop(self):
+        ...
+
+    async def handle_dispatch(self, data: dict):
         ...
 
     async def handle_hello(self, data: dict, shard: 'DefaultShard'):
