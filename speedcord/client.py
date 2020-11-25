@@ -164,6 +164,8 @@ class Client:
                 shard = DefaultShard(shard_id, self, loop=self.loop)
                 if not activate_automatically:
                     shard.active = False
+                else:
+                    shard.active = True
                 await shard.connect(gateway_url)
                 shard_list.append(shard)
             self.remaining_connections = connections_left
