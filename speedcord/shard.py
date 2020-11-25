@@ -116,7 +116,7 @@ class DefaultShard:
                 data = message.json(loads=loads)
                 if "s" in data.keys() and data["s"] is not None:
                     self.last_event_id = data["s"]
-                self.logger.debug("Data received: " + str(data))
+                self.logger.debug(f"Data received ({('inactive', 'active')[self.active]} mode): " + str(data))
                 if self.active:
                     self.client.opcode_dispatcher.dispatch(data["op"], data, self)
                 else:
