@@ -5,7 +5,6 @@ from logging import Logger
 from .shard import DefaultShard
 from .http import HttpClient
 from .dispatcher import EventDispatcher, OpcodeDispatcher
-from .gateway import DefaultGatewayHandler
 from .ratelimiter import TimesPer
 
 
@@ -21,7 +20,6 @@ class Client:
     http: Optional[HttpClient]
     opcode_dispatcher: OpcodeDispatcher
     event_dispatcher: EventDispatcher
-    gateway_handler: DefaultGatewayHandler
     connected: Event
     exit_event: Event
     remaining_connections: Optional[int]
