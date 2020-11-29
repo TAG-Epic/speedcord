@@ -5,7 +5,7 @@ from asyncio import Event, get_event_loop, Lock, sleep
 from logging import getLogger
 from time import time
 
-from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken
+from .exceptions import Unauthorized, ConnectionsExceeded, InvalidToken, InvalidShardCount
 from .http import HttpClient, Route
 from .dispatcher import OpcodeDispatcher, EventDispatcher
 from .shard import DefaultShard
@@ -42,7 +42,7 @@ class Client:
         self.connection_lock = Lock(loop=self.loop)
         self.fatal_exception = None
         self.connect_ratelimiter = None
-        self.current_shard_count = None
+        self.current_shard_count = shard_count if shard_count else None
 
         # Default event handlers
         self.opcode_dispatcher.register(0, self.handle_dispatch)
@@ -142,9 +142,12 @@ class Client:
             return
         if self.connect_ratelimiter is None:
             self.connect_ratelimiter = TimesPer(max_concurrency, 5)
-        self.current_shard_count = self.shard_count or shard_count
+        if shard_count > self.current_shard_count:
+            if self.shard_count:
+                raise InvalidShardCount
+            self.current_shard_count = shard_count
         if shard_ids is None:
-            shard_ids = range(shard_count)
+            shard_ids = range(self.current_shard_count)
         async with self.connection_lock:
             for shard_id in shard_ids:
                 connections_left -= 1
@@ -166,8 +169,11 @@ class Client:
                     shard.active = False
                 else:
                     shard.active = True
+                self.logger.debug("Connecting shard")
                 await shard.connect(gateway_url)
+                self.logger.debug("Connected shard!")
                 shard_list.append(shard)
+            self.logger.debug("All shards connected")
             self.remaining_connections = connections_left
 
     def listen(self, event):
