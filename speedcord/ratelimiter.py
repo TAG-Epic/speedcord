@@ -18,11 +18,12 @@ class TimesPer:
 
     async def trigger(self):
         async with self.lock:
+            self.left -= 1
             current_time = time()
             if current_time >= self.reset:
                 self.reset = current_time + self.per
                 self.left = self.times
             if self.left == 0:
                 sleep_for = self.reset - current_time
-                logger.debug(f"Gateway ratelimited! Sleeping for {sleep_for}s")
+                logger.debug(f"Ratelimited! Sleeping for {sleep_for}s")
                 await sleep(self.reset - current_time)
