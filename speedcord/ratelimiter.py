@@ -18,7 +18,6 @@ class TimesPer:
 
     async def trigger(self):
         async with self.lock:
-            self.left -= 1
             current_time = time()
             if current_time >= self.reset:
                 self.reset = current_time + self.per
@@ -27,3 +26,5 @@ class TimesPer:
                 sleep_for = self.reset - current_time
                 logger.debug(f"Ratelimited! Sleeping for {sleep_for}s")
                 await sleep(self.reset - current_time)
+                self.left = self.times
+            self.left -= 1
