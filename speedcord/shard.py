@@ -6,8 +6,7 @@ from .exceptions import GatewayUnavailable, GatewayNotAuthenticated, InvalidToke
 from .http import Route
 from .ratelimiter import TimesPer
 
-from asyncio import Event, AbstractEventLoop, sleep
-from asyncio.exceptions import TimeoutError
+from asyncio import Event, AbstractEventLoop, sleep, TimeoutError
 from aiohttp.client_exceptions import ClientConnectorError
 from aiohttp import WSMessage, WSMsgType
 from logging import getLogger
