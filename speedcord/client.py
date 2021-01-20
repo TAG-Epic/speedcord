@@ -135,13 +135,15 @@ class Client:
 
     async def spawn_shards(self, shard_list, *, activate_automatically=True, shard_ids=None):
         try:
-            gateway_url, shard_count, connections_left,\
-                connections_reset_after, max_concurrency = await self.get_gateway()
+            gateway_url, shard_count, connections_left, \
+            connections_reset_after, max_concurrency = await self.get_gateway()
         except Unauthorized as e:
             await self.fatal(e)
             return
         if self.connect_ratelimiter is None:
             self.connect_ratelimiter = TimesPer(max_concurrency, 5)
+        if self.current_shard_count is None:
+            self.current_shard_count = self.shard_count or shard_count
         if shard_count > self.current_shard_count:
             if self.shard_count:
                 raise InvalidShardCount
@@ -157,8 +159,8 @@ class Client:
                         self.logger.warning("You have used up all your gateway IDENTIFYs. Sleeping until it resets.")
                         await sleep(connections_reset_after - time())
                     try:
-                        gateway_url, shard_count, connections_left,\
-                            connections_reset_after, max_concurrency = await self.get_gateway()
+                        gateway_url, shard_count, connections_left, \
+                        connections_reset_after, max_concurrency = await self.get_gateway()
                     except Unauthorized as e:
                         await self.fatal(e)
                         return
