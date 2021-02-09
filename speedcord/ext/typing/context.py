@@ -14,7 +14,7 @@ class BaseContext:
         self._data = data
 
         # This possibly sucks performance wise? Please make a pr if there is a better way to do this.
-        for field, field_data in data.items():
+        for field, field_data in _data.items():
             setattr(self, field, field_data)
 
 
