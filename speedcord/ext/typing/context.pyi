@@ -4,7 +4,7 @@ from typing import Dict, Any, Optional, List, Union
 
 class BaseContext:
     client: Client
-    data: Dict[str, Any]
+    _data: Dict[str, Any]
 
     def __init__(self, client: Client, data: Dict[str, Any]):
         ...
