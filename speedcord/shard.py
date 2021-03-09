@@ -86,10 +86,10 @@ class DefaultShard:
                     if self.client.remaining_connections <= 1:
                         self.logger.info("Max connections reached!")
                         gateway_url, shard_count, connections_left, \
-                        connections_reset_after, max_concurrency = await self.client.get_gateway()
+                            connections_reset_after, max_concurrency = await self.client.get_gateway()
                         await sleep(connections_reset_after / 1000)
                         gateway_url, shard_count, connections_left, \
-                        connections_reset_after, max_concurrency = await self.client.get_gateway()
+                            connections_reset_after, max_concurrency = await self.client.get_gateway()
                         self.client.remaining_connections = connections_left
                     await self.identify()
                     return
