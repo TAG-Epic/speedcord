@@ -128,12 +128,18 @@ class HttpClient:
             self.session = ClientSession()
         bucket = route.bucket
 
-        for i in range(self.retry_attempts):
+        for retry_count in range(self.retry_attempts):
             if not self.global_lock.is_set():
-                self.logger.debug("Sleeping for Global Rate Limit")
+                self.logger.debug("Sleeping for global rate-limit")
                 await self.global_lock.wait()
 
-            ratelimit_lock: asyncio.Lock = self.ratelimit_locks.get(bucket, asyncio.Lock(loop=self.loop))
+            ratelimit_lock: asyncio.Lock = self.ratelimit_locks.get(bucket, None)
+            if ratelimit_lock is None:
+                self.ratelimit_locks[bucket] = asyncio.Lock()
+                continue
+
+            self.logger.info(self.ratelimit_locks)
+
             await ratelimit_lock.acquire()
             with LockManager(ratelimit_lock) as lockmanager:
                 # Merge default headers with the users headers, could probably use a if to check if is headers set?
@@ -149,40 +155,42 @@ class HttpClient:
                     if reason:
                         kwargs["headers"]["X-Audit-Log-Reason"] = uriquote(reason, safe="/ ")
                 r = await self.session.request(route.method, self.baseuri + route.path, **kwargs)
+                headers = r.headers
 
-                # check if we have rate limit header information
-                remaining = r.headers.get('X-Ratelimit-Remaining')
-                if remaining == '0' and r.status != 429:
-                    # we've depleted our current bucket
-                    delta = float(r.headers.get("X-Ratelimit-Reset-After"))
-                    self.logger.debug(f"Ratelimit exceeded. Bucket: {bucket}. Retry after: {delta}")
-                    lockmanager.defer()
-                    self.loop.call_later(delta, ratelimit_lock.release)
-
-                status_code = r.status
-
-                if status_code == 404:
-                    raise NotFound(r)
-                elif status_code == 401:
-                    raise Unauthorized(r)
-                elif status_code == 403:
-                    raise Forbidden(r, await r.text())
-                elif status_code == 429:
-                    if not r.headers.get("Via"):
-                        # Cloudflare banned?
-                        raise HTTPException(r, await r.text())
-
+                if r.status == 429:
                     data = await r.json()
-                    retry_after = data["retry_after"] / 1000
-                    is_global = data.get("global", False)
-                    if is_global:
-                        self.logger.warning(f"Global ratelimit hit! Retrying in {retry_after}s")
-                    else:
+                    retry_after = data["retry_after"]
+                    if "X-RateLimit-Global" in headers.keys():
+                        # Global rate-limited
+                        self.global_lock.set()
                         self.logger.warning(
-                            f"A ratelimit was hit (429)! Bucket: {bucket}. Retrying in {retry_after}s")
+                            "Global rate-limit reached! Please contact discord support to get this increased. "
+                            "Trying again in %s Request attempt %s" % (retry_after, retry_count))
+                        await asyncio.sleep(retry_after)
+                        self.global_lock.clear()
+                        self.logger.debug("Trying request again. Request attempt: %s" % retry_count)
+                        continue
+                    else:
+                        self.logger.info("Ratelimit bucket hit! Bucket: %s. Retrying in %s. Request count %s" % (
+                            bucket, retry_after, retry_count))
+                        await asyncio.sleep(retry_after)
+                        self.logger.debug("Trying request again. Request attempt: %s" % retry_count)
+                        continue
+                elif r.status == 400:
+                    raise NotFound(r)
+                elif r.status == 401:
+                    raise Unauthorized(r)
+                elif r.status == 403:
+                    raise Forbidden(r, await r.text())
 
-                    await asyncio.sleep(retry_after)
-                    continue
+                # Check if we are just on the limit but not passed it
+                remaining = r.headers.get('X-Ratelimit-Remaining')
+                if remaining == "0":
+                    retry_after = float(headers.get("X-RateLimit-Reset-After", "0"))
+                    self.logger.debug(headers)
+                    self.logger.info("Rate-limit exceeded! Bucket: %s Retry after: %s" % (bucket, retry_after))
+                    lockmanager.defer()
+                    self.loop.call_later(retry_after, ratelimit_lock.release)
 
                 return r
 
