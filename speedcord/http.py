@@ -138,8 +138,6 @@ class HttpClient:
                 self.ratelimit_locks[bucket] = asyncio.Lock()
                 continue
 
-            self.logger.info(self.ratelimit_locks)
-
             await ratelimit_lock.acquire()
             with LockManager(ratelimit_lock) as lockmanager:
                 # Merge default headers with the users headers, could probably use a if to check if is headers set?
@@ -187,7 +185,6 @@ class HttpClient:
                 remaining = r.headers.get('X-Ratelimit-Remaining')
                 if remaining == "0":
                     retry_after = float(headers.get("X-RateLimit-Reset-After", "0"))
-                    self.logger.debug(headers)
                     self.logger.info("Rate-limit exceeded! Bucket: %s Retry after: %s" % (bucket, retry_after))
                     lockmanager.defer()
                     self.loop.call_later(retry_after, ratelimit_lock.release)
