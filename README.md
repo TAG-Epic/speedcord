@@ -1,5 +1,5 @@
 # Speedcord 
-###  A simple discord API wrapper - without all the garbage 
+###  A simple discord API wrapper made to be easily hacked.
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/tag-epic/speedcord)
 ![GitHub issues](https://img.shields.io/github/issues-raw/tag-epic/speedcord)
