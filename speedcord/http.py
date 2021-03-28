@@ -189,12 +189,14 @@ class HttpClient:
                         await asyncio.sleep(retry_after)
                         self.logger.debug("Trying request again. Request attempt: %s" % retry_count)
                         continue
-                elif r.status == 400:
-                    raise NotFound(r)
                 elif r.status == 401:
                     raise Unauthorized(r)
                 elif r.status == 403:
                     raise Forbidden(r, await r.text())
+                elif r.status == 404:
+                    raise NotFound(r)
+                elif r.status >= 300:
+                    raise HTTPException(r, await r.text())
 
                 # Check if we are just on the limit but not passed it
                 remaining = r.headers.get('X-Ratelimit-Remaining')
