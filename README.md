@@ -28,7 +28,11 @@ It is recommended to **pin the version in production to avoid stuff breaking**
 There are currently few examples, you are free to contribute new examples
 
 - [Simple command using the `MESSAGE_CREATE` listener](https://github.com/TAG-Epic/speedcord/blob/master/examples/simplecommand.py)
- 
+
+### Extended usage
+Using extensions can make your speedcord development experience much more pleasant. Here's a list of extensions which might help you  
+[Speedian - interactions handler](https://github.com/tag-epic/speedcord-command-handler)
+
 ## Contributing
 
 Contributions are more than welcome as long as they follow our [contribution guidelines](https://github.com/TAG-Epic/speedcord/blob/master/CONTRIBUTING.md), additonally make sure you follow our [code of conduct](https://github.com/TAG-Epic/speedcord/blob/master/CODE_OF_CONDUCT.md)
