@@ -15,7 +15,7 @@ You can install Speedcord from PyPi using the following command:
 ```bash
 pip3 install speedcord
 ```
-It is recommended to **pin the version in production to avoid stuff breaking**
+It is recommended to **pin the version in production as breaking changes might occur**
 
 
 ## Features
@@ -35,4 +35,4 @@ Using extensions can make your speedcord development experience much more pleasa
 
 ## Contributing
 
-Contributions are more than welcome as long as they follow our [contribution guidelines](https://github.com/TAG-Epic/speedcord/blob/master/CONTRIBUTING.md), additonally make sure you follow our [code of conduct](https://github.com/TAG-Epic/speedcord/blob/master/CODE_OF_CONDUCT.md)
+Contributions are more than welcome as long as they follow our [contribution guidelines](https://github.com/TAG-Epic/speedcord/blob/master/CONTRIBUTING.md)
