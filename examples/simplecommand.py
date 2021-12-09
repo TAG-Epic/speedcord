@@ -25,7 +25,7 @@ async def on_message(data, shard):
     message = data
     if message["content"].lower() == "!test":
         channel = message["channel_id"]
-        route = Route("POST", f"/channels/{channel}/messages", channel_id=channel)
+        route = Route("POST", f"/channels/{channel_id}/messages", channel_id=channel)
         await client.http.request(route, json={"content": "Hello world!"})
 
 client.token = env["TOKEN"]
