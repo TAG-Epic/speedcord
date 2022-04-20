@@ -6,7 +6,11 @@
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/tag-epic/speedcord)
 ![PyPI downloads](https://img.shields.io/pypi/dm/speedcord)
 [![Discord support](https://img.shields.io/discord/784592146182570015)](https://discord.gg/QTX36dDMzT)
-[![GitHub license](https://img.shields.io/github/license/TAG-Epic/speedcord)](https://github.com/TAG-Epic/speedcord/blob/master/LICENCE)  
+[![GitHub license](https://img.shields.io/github/license/TAG-Epic/speedcord)](https://github.com/TAG-Epic/speedcord/blob/master/LICENCE) 
+
+
+### DEPRECATION NOTICE
+Speedcord is being superseded by https://github.com/nextcord/nextcord-v3
 
 
 ## Installing
