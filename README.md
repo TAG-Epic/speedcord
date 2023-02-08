@@ -10,7 +10,7 @@
 
 
 ### DEPRECATION NOTICE
-Speedcord is being superseded by https://github.com/nextcord/nextcord-v3
+Speedcord is being superseded by https://github.com/nextsnake/nextcore
 
 
 ## Installing
